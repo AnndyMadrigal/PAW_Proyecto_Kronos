@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Kronos | Iniciar sesión</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+
+<body x-data="{
+    page: 'auth',
+    loaded: true,
+    darkMode: localStorage.getItem('darkMode') === 'true',
+    stickyMenu: false,
+    sidebarToggle: false,
+    scrollTop: false
+    }"
+      x-init="$watch('darkMode', value => localStorage.setItem('darkMode', value))"
+      :class="{ 'dark bg-gray-900': darkMode }">
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
+        <div class="relative flex flex-col justify-center w-full h-screen dark:bg-gray-900 sm:p-0 lg:flex-row">
+
+            @RenderBody()
+
+            <div class="relative items-center hidden w-full h-full bg-brand-950 dark:bg-white/5 lg:grid lg:w-1/2">
+                <div class="flex items-center justify-center z-1">
+                    <!-- ===== Common Grid Shape Start ===== -->
+                    <partial name="_CommonGridShape" />
+
+                    <div class="flex flex-col items-center max-w-xs">
+                        <a asp-controller="Home" asp-action="Login" class="block mb-4">
+                            <svg class="mb-6 h-36 w-36 text-white dark:text-white/90"
+                                 viewBox="0 0 160 160"
+                                 fill="none"
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 aria-label="Reloj con temática griega">
+                                <path d="M42 36H118"
+                                      stroke="currentColor"
+                                      stroke-width="6"
+                                      stroke-linecap="round" />
+
+                                <path d="M50 48H110"
+                                      stroke="currentColor"
+                                      stroke-width="4"
+                                      stroke-linecap="round" />
+
+                                <path d="M56 48V62"
+                                      stroke="currentColor"
+                                      stroke-width="5"
+                                      stroke-linecap="round" />
+
+                                <path d="M80 48V62"
+                                      stroke="currentColor"
+                                      stroke-width="5"
+                                      stroke-linecap="round" />
+
+                                <path d="M104 48V62"
+                                      stroke="currentColor"
+                                      stroke-width="5"
+                                      stroke-linecap="round" />
+
+                                <circle cx="80"
+                                        cy="92"
+                                        r="42"
+                                        stroke="currentColor"
+                                        stroke-width="6" />
+
+                                <circle cx="80"
+                                        cy="92"
+                                        r="31"
+                                        stroke="currentColor"
+                                        stroke-width="3" />
+
+                                <path d="M80 92V70"
+                                      stroke="currentColor"
+                                      stroke-width="5"
+                                      stroke-linecap="round" />
+
+                                <path d="M80 92L99 103"
+                                      stroke="currentColor"
+                                      stroke-width="5"
+                                      stroke-linecap="round" />
+
+                                <circle cx="80"
+                                        cy="92"
+                                        r="5"
+                                        fill="currentColor" />
+
+                                <path d="M57 92H65V84H73"
+                                      stroke="currentColor"
+                                      stroke-width="4"
+                                      stroke-linecap="square"
+                                      stroke-linejoin="miter" />
+
+                                <path d="M103 92H95V100H87"
+                                      stroke="currentColor"
+                                      stroke-width="4"
+                                      stroke-linecap="square"
+                                      stroke-linejoin="miter" />
+
+                                <path d="M50 140H110"
+                                      stroke="currentColor"
+                                      stroke-width="6"
+                                      stroke-linecap="round" />
+                            </svg>
+                        </a>
+
+                        <p class="text-center text-gray-400 dark:text-white/60">
+                            Sistema de Gestión Kronos
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toggler -->
+            
+        </div>
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
