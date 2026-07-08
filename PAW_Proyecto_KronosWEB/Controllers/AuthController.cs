@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using PAW_Proyecto_Kronos.Models;
-using System.Diagnostics;
 
 namespace PAW_Proyecto_Kronos.Controllers
 {
-    public class AuthController : Controller
+    public class AuthController(IHttpClientFactory _http, IConfiguration _config) : Controller
     {
         [HttpGet]
         public IActionResult Login()
