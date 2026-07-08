@@ -1,3 +1,4 @@
 <Solution>
-  <Project Path="./PAW_Proyecto_Kronos.csproj" />
+  <Project Path="PAW_Proyecto_KronosAPI/PAW_Proyecto_KronosAPI.csproj" Id="6879e896-81ce-45e5-ae5f-d8e9bd731409" />
+  <Project Path="PAW_Proyecto_KronosWEB/PAW_Proyecto_Kronos.csproj" />
 </Solution>

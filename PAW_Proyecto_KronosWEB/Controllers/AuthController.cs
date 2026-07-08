@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace PAW_Proyecto_Kronos.Controllers
 {
-    public class HomeController : Controller
+    public class AuthController : Controller
     {
         [HttpGet]
         public IActionResult Login()
@@ -18,11 +18,12 @@ namespace PAW_Proyecto_Kronos.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpGet]
         public IActionResult Register()
         {
             return View();
         }
-
+        
         public IActionResult Index()
         {
             return View();
