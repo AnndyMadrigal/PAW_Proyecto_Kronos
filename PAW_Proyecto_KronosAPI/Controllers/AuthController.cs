@@ -1,12 +1,41 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PAW_Proyecto_KronosAPI.Models;
+using Microsoft.Data.SqlClient;
+using Dapper;
+using Microsoft.Extensions.FileSystemGlobbing.Internal.PathSegments;
 
 namespace PAW_Proyecto_KronosAPI.Controllers
 {
-    public class AuthController : Controller
+    public class AuthController(IConfiguration _config) : Controller
     {
-        public IActionResult RegisterUser()
+        [Route("api/[RegisterUserAPI]")]
+        [HttpPost]
+        public IActionResult RegisterUserAPI(UserRequestModel model)
+
         {
-            return View();
+            using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
+            {
+
+                model.created_at = DateTime.Now;
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@username", model.username);
+                parameters.Add("@email", model.email);
+                parameters.Add("@password", model.password);
+                parameters.Add("@full_name", model.full_name);
+                parameters.Add("@phone", model.phone);
+                parameters.Add("@created_at", model.created_at);
+
+                var response = context.Execute("spRegisterUser", parameters);
+                if (response == 0)
+                {
+                    return BadRequest("Error al registrar el usuario");
+                } else
+                {
+                    return Ok("Usuario registrado correctamente");
+                }
+
+            }
         }
     }
 }

@@ -22,8 +22,21 @@ namespace PAW_Proyecto_Kronos.Controllers
         {
             return View();
         }
-        
-        public IActionResult Index()
+
+        [HttpPost]
+        public IActionResult RegisterUser(UserModel model)
+
+        { using (var client = _http.CreateClient())
+            {
+                var url = _config["Valores:UrlApi"] + "Auth/RegisterAPI";
+
+                var response = client.PostAsJsonAsync(url, model).Result;
+                
+                return RedirectToAction("Login");
+            }
+        }
+
+public IActionResult Index()
         {
             return View();
         }
@@ -47,15 +60,6 @@ namespace PAW_Proyecto_Kronos.Controllers
             TempData["SuccessMessage"] = "Si el correo existe, recibirás instrucciones para restablecer tu contraseña.";
 
             return RedirectToAction(nameof(RecoverPassword));
-        }
-
-        
-    
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }
