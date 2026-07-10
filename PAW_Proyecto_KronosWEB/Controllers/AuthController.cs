@@ -28,10 +28,11 @@ namespace PAW_Proyecto_Kronos.Controllers
 
         { using (var client = _http.CreateClient())
             {
-                var url = _config["Valores:UrlApi"] + "Auth/RegisterAPI";
+                var url = _config["Valores:UrlApi"] + "Auth/RegisterUserAPI";
 
                 var response = client.PostAsJsonAsync(url, model).Result;
                 
+                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
                 return RedirectToAction("Login");
             }
         }
