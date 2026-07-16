@@ -25,7 +25,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@full_name", model.full_name);
                 parameters.Add("@phone", model.phone);
 
-                var response = context.Execute("spRegisterUser", parameters);
+                var response = context.Execute("spRegisterBasicUser", parameters);
                 if (response == 0)
                 {
                     return BadRequest("Error al registrar el usuario");

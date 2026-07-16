@@ -1,4 +1,8 @@
-﻿<!-- Form -->
+﻿
+@model UserModel
+
+
+<!-- Form -->
 <div class="flex flex-col flex-1 w-full lg:w-1/2">
    
     <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -13,57 +17,58 @@
         <div>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5"> 
             </div>
-            <form>
+            <form id="registerForm" asp-action="RegisterUser" asp-controller="Auth" method="post">
                 <div class="space-y-5">
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                        <!-- First Name -->
+                        <!-- Username -->
                         <div class="sm:col-span-1">
                             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                Nombre<span class="text-error-500">*</span>
+                                Nombre de Usuario<span class="text-error-500">*</span>
                             </label>
-                            <input type="text"
-                                   id="fname"
-                                   name="fname"
-                                   placeholder="Ingresa tu nombre"
+                            <input asp-for="username" type="text" name="username"
+                                   placeholder="Ingresa tu nombre de usuario"
                                    class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
                         </div>
-                        <!-- Last Name -->
+                        <!-- email -->
                         <div class="sm:col-span-1">
                             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                Apellido<span class="text-error-500">*</span>
+                                Correo Electrónico<span class="text-error-500">*</span>
                             </label>
-                            <input type="text"
-                                   id="lname"
-                                   name="lname"
-                                   placeholder="Ingresa tu apellido"
+                            <input asp-for="email" type="email" name="email"
+                                   placeholder="Ingresa tu correo electrónico"
                                    class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
                         </div>
+
+                        
                     </div>
-                    <!-- Email -->
+                    <!-- full_name -->
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Correo Electrónico<span class="text-error-500">*</span>
+                            Nombre Completo<span class="text-error-500">*</span>
                         </label>
-                        <input type="email"
-                               id="email"
-                               name="email"
-                               placeholder="Ingresa tu correo electrónico"
+                        <input asp-for="full_name" type="text" name="full_name"
+                               placeholder="Ingresa tu nombre completo"
                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
                     </div>
-                    <!-- Password -->
+                    
+                    <!-- phone -->
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Número de telefono <span class="text-error-500">*</span>
+                        </label>
+                        <input asp-for="phone" type="text" name="phone"
+                               placeholder="Ingresa tu número de teléfono"
+                               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
+                    </div>
+                    <!-- password -->
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Contraseña<span class="text-error-500">*</span>
                         </label>
                         <div x-data="{ showPassword: false }" class="relative">
-                            <input type="password"
+                            <input asp-for="password" type="password" name="password"
                                    placeholder="Ingresa tu contraseña"
                                    class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-4 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800" />
-                        </div>
-                    </div>
-                    <!-- Checkbox -->
-                    <div>
-                        <div x-data="{ checkboxToggle: false }">
                         </div>
                     </div>
                     <!-- Button -->
@@ -84,3 +89,6 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script src="~/js/registerUser.js" asp-append-version="true"></script>
+}

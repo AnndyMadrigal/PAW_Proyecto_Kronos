@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PAW_Proyecto_Kronos.Models;
+using System.Net;
 
 namespace PAW_Proyecto_Kronos.Controllers
 {
@@ -26,15 +27,21 @@ namespace PAW_Proyecto_Kronos.Controllers
         [HttpPost]
         public IActionResult RegisterUser(UserModel model)
 
-        { using (var client = _http.CreateClient())
-            {
-                var url = _config["Valores:UrlApi"] + "Auth/RegisterUserAPI";
+        {
+            using var client = _http.CreateClient();
+            var url = _config["Valores:UrlApi"] + "Auth/RegisterUserAPI";
+            var response = client.PostAsJsonAsync(url, model).Result;
 
-                var response = client.PostAsJsonAsync(url, model).Result;
-                
-                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
-                return RedirectToAction("Login");
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                return RedirectToAction("Login", "Auth");
             }
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
+                return View();
+            }
+            throw new Exception("Error al registrar el usuario");
         }
 
 public IActionResult Index()
