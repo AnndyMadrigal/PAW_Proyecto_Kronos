@@ -8,6 +8,9 @@
 		<Folder Include="wwwroot\partials\" />
 		<Folder Include="wwwroot\svg\" />
 	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+	</ItemGroup>
 	<Target Name="Tailwind" BeforeTargets="Build">
 		<Exec Command="npm run build:css" />
 	</Target>

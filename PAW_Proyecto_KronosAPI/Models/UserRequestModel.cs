@@ -13,7 +13,7 @@ namespace PAW_Proyecto_KronosAPI.Models
         public string password { get; set; } = string.Empty;
         [Required]
         public string full_name { get; set; } = string.Empty;
-        
+        [Required]
         public string phone { get; set; } = string.Empty;
 
     }

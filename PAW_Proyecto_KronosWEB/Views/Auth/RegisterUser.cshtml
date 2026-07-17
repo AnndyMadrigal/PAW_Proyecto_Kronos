@@ -7,6 +7,12 @@
    
     <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div class="mb-5 sm:mb-8">
+            @if (ViewBag.Mensaje != null)
+            {
+                <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
+                    @ViewBag.Mensaje
+                </div>
+            }
             <h1 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
                 Registrarse
             </h1>

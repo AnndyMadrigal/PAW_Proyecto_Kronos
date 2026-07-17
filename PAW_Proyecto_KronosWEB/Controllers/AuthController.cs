@@ -11,23 +11,49 @@ namespace PAW_Proyecto_Kronos.Controllers
         {
             return View();
         }
-
+        #region Login
         [HttpPost]
-        public IActionResult Login(string email, string password)
+        public IActionResult Login(UserModel model)
         {
-            return RedirectToAction("Index");
-        }
+            using var client = _http.CreateClient();
+            var url = _config["Valores:UrlApi"] + "Auth/LoginAPI";
+            var response = client.PostAsJsonAsync(url, model).Result;
 
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var data = response.Content.ReadFromJsonAsync<UserModel>().Result;
+
+                HttpContext.Session.SetString("Authenticated", "1");
+                HttpContext.Session.SetString("Name", data!.username);
+                HttpContext.Session.SetInt32("Consecutivo", data!.id);
+                HttpContext.Session.SetString("Token", data!.Token);
+                HttpContext.Session.SetInt32("role_id", data!.role_id);
+                HttpContext.Session.SetString("RoleName", data!.RoleName);
+
+                return RedirectToAction("Index", "Home");
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
+                return View();
+            }
+            throw new Exception("Error al iniciar sesión");
+        }
+        #endregion
+
+        #region RegisterUser
         [HttpGet]
         public IActionResult RegisterUser()
         {
             return View();
         }
-
+        
         [HttpPost]
         public IActionResult RegisterUser(UserModel model)
 
         {
+            model.password = BCrypt.Net.BCrypt.HashPassword(model.password);
+
             using var client = _http.CreateClient();
             var url = _config["Valores:UrlApi"] + "Auth/RegisterUserAPI";
             var response = client.PostAsJsonAsync(url, model).Result;
@@ -43,11 +69,7 @@ namespace PAW_Proyecto_Kronos.Controllers
             }
             throw new Exception("Error al registrar el usuario");
         }
-
-public IActionResult Index()
-        {
-            return View();
-        }
+        #endregion
 
         [HttpGet]
         public IActionResult RecoverPassword()
