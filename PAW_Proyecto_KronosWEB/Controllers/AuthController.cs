@@ -11,7 +11,7 @@ namespace PAW_Proyecto_Kronos.Controllers
         {
             return View();
         }
-
+        #region Login
         [HttpPost]
         public IActionResult Login(UserModel model)
         {
@@ -21,6 +21,13 @@ namespace PAW_Proyecto_Kronos.Controllers
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
+                var data = response.Content.ReadFromJsonAsync<UserModel>().Result;
+
+                HttpContext.Session.SetString("Authenticated", "1");
+                HttpContext.Session.SetString("Name", data!.username);
+                HttpContext.Session.SetInt32("Consecutivo", data!.id);
+                HttpContext.Session.SetString("Token", data!.Token);
+
                 return RedirectToAction("Index", "Home");
             }
             else if (response.StatusCode == HttpStatusCode.NotFound)
@@ -30,6 +37,8 @@ namespace PAW_Proyecto_Kronos.Controllers
             }
             throw new Exception("Error al iniciar sesión");
         }
+        #endregion
+
         #region RegisterUser
         [HttpGet]
         public IActionResult RegisterUser()

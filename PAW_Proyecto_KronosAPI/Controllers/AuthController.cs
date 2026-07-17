@@ -3,12 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PAW_Proyecto_Kronos.Models;
 using PAW_Proyecto_KronosAPI.Models;
+using PAW_Proyecto_KronosAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PAW_Proyecto_KronosAPI.Controllers
 {
+    [AllowAnonymous]
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IConfiguration _config) : Controller
+    public class AuthController(IConfiguration _config, IHelpersService _helpers) : Controller
     {
 
         [HttpPost("LoginAPI")]
@@ -22,13 +25,15 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@password", model.password);
 
                 var response = context.QueryFirstOrDefault<UserResponseModel>("spLoginUser", parameters);
-                if (response == null)
+                if (response != null)
                 {
-                    return NotFound("El correo o contraseña son incorrectos");
+                    response.Token = _helpers.GenerateToken(response.id);
+                    return Ok(response);
                 }
                 else
                 {
-                    return Ok(response);
+                    return NotFound("El correo o contraseña son incorrectos");
+                    
                 }
 
             }

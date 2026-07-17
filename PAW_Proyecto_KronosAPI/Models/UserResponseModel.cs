@@ -8,7 +8,7 @@
         public string password { get; set; } = string.Empty;
         public string full_name { get; set; } = string.Empty;
         public string phone { get; set; } = string.Empty;
-
         public bool is_active { get; set; }
+        public string Token { get; set; } = string.Empty;
     }
 }
