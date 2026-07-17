@@ -9,7 +9,8 @@
         public string full_name { get; set; } = string.Empty;
         public string phone { get; set; } = string.Empty;
         public bool is_active { get; set; }
-
+        public int role_id { get; set; }
+        public string RoleName { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
     }
 }

@@ -25,7 +25,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@password", model.password);
 
                 var response = context.QueryFirstOrDefault<UserResponseModel>("spLoginUser", parameters);
-                if (response != null)
+                if (response != null && BCrypt.Net.BCrypt.Verify(model.password, response.password))
                 {
                     response.Token = _helpers.GenerateToken(response.id);
                     return Ok(response);
@@ -54,12 +54,13 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@phone", model.phone);
 
                 var response = context.Execute("spRegisterBasicUser", parameters);
-                if (response == 0)
-                {
-                    return BadRequest("Error al registrar el usuario");
-                } else
+                if (response > 0)
                 {
                     return Ok("Usuario registrado correctamente");
+                    
+                } else
+                {
+                    return BadRequest("El correo electronico ya se encuentra registrado");
                 }
 
             }
