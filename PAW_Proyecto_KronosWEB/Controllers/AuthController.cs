@@ -13,17 +13,30 @@ namespace PAW_Proyecto_Kronos.Controllers
         }
 
         [HttpPost]
-        public IActionResult Login(string email, string password)
+        public IActionResult Login(UserModel model)
         {
-            return RedirectToAction("Index");
-        }
+            using var client = _http.CreateClient();
+            var url = _config["Valores:UrlApi"] + "Auth/LoginAPI";
+            var response = client.PostAsJsonAsync(url, model).Result;
 
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
+                return View();
+            }
+            throw new Exception("Error al iniciar sesión");
+        }
+        #region RegisterUser
         [HttpGet]
         public IActionResult RegisterUser()
         {
             return View();
         }
-
+        
         [HttpPost]
         public IActionResult RegisterUser(UserModel model)
 
@@ -43,11 +56,7 @@ namespace PAW_Proyecto_Kronos.Controllers
             }
             throw new Exception("Error al registrar el usuario");
         }
-
-public IActionResult Index()
-        {
-            return View();
-        }
+        #endregion
 
         [HttpGet]
         public IActionResult RecoverPassword()

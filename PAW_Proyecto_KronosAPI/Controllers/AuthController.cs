@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using PAW_Proyecto_KronosAPI.Models;
+﻿using Dapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using Dapper;
-using Microsoft.Extensions.FileSystemGlobbing.Internal.PathSegments;
+using PAW_Proyecto_Kronos.Models;
+using PAW_Proyecto_KronosAPI.Models;
 
 namespace PAW_Proyecto_KronosAPI.Controllers
 {
@@ -10,7 +10,30 @@ namespace PAW_Proyecto_KronosAPI.Controllers
     [ApiController]
     public class AuthController(IConfiguration _config) : Controller
     {
-        
+
+        [HttpPost("LoginAPI")]
+        public IActionResult LoginAPI(UserLoginRequestModel model)
+        {
+            using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
+            {
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@email", model.email);
+                parameters.Add("@password", model.password);
+
+                var response = context.QueryFirstOrDefault<UserResponseModel>("spLoginUser", parameters);
+                if (response == null)
+                {
+                    return NotFound("El correo o contraseña son incorrectos");
+                }
+                else
+                {
+                    return Ok(response);
+                }
+
+            }
+        }
+
         [HttpPost("RegisterUserAPI")]
         public IActionResult RegisterUserAPI(UserRequestModel model)
 

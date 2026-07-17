@@ -1,20 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace PAW_Proyecto_KronosAPI.Models
-
+﻿namespace PAW_Proyecto_Kronos.Models
 {
-    public class UserRequestModel
+    public class UserResponseModel
     {
-        [Required]
+        public int id { get; set; }
         public string username { get; set; } = string.Empty;
-        [Required]
         public string email { get; set; } = string.Empty;
-        [Required]
         public string password { get; set; } = string.Empty;
-        [Required]
         public string full_name { get; set; } = string.Empty;
-        [Required]
         public string phone { get; set; } = string.Empty;
 
+        public bool is_active { get; set; }
     }
 }
