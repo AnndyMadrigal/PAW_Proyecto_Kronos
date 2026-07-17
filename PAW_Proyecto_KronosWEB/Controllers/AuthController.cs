@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using PAW_Proyecto_Kronos.Models;
-using System.Diagnostics;
+using System.Net;
 
 namespace PAW_Proyecto_Kronos.Controllers
 {
-    public class AuthController : Controller
+    public class AuthController(IHttpClientFactory _http, IConfiguration _config) : Controller
     {
         [HttpGet]
         public IActionResult Login()
@@ -19,12 +19,32 @@ namespace PAW_Proyecto_Kronos.Controllers
         }
 
         [HttpGet]
-        public IActionResult Register()
+        public IActionResult RegisterUser()
         {
             return View();
         }
-        
-        public IActionResult Index()
+
+        [HttpPost]
+        public IActionResult RegisterUser(UserModel model)
+
+        {
+            using var client = _http.CreateClient();
+            var url = _config["Valores:UrlApi"] + "Auth/RegisterUserAPI";
+            var response = client.PostAsJsonAsync(url, model).Result;
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
+                return View();
+            }
+            throw new Exception("Error al registrar el usuario");
+        }
+
+public IActionResult Index()
         {
             return View();
         }
@@ -48,15 +68,6 @@ namespace PAW_Proyecto_Kronos.Controllers
             TempData["SuccessMessage"] = "Si el correo existe, recibirás instrucciones para restablecer tu contraseña.";
 
             return RedirectToAction(nameof(RecoverPassword));
-        }
-
-        
-    
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }

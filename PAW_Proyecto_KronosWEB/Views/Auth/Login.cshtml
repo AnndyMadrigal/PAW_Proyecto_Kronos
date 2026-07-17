@@ -7,7 +7,7 @@
     <div class="flex flex-col flex-1 w-full lg:w-1/2">
         <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
             <div>
-                <div class="mb-5 sm:mb-8">
+                <div class="mb-2 sm:mb-5">
                     <h1 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
                         Iniciar sesión
                     </h1>
@@ -17,30 +17,12 @@
                 </div>
 
                 <div>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5">
-                        <button type="button"
-                                class="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
-                            Iniciar sesión con Google
-                        </button>
+                    
 
-                        <button type="button"
-                                class="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
-                            Iniciar sesión con X
-                        </button>
+                    <div class="relative py-3 sm:py-3">
                     </div>
 
-                    <div class="relative py-3 sm:py-5">
-                        <div class="absolute inset-0 flex items-center">
-                            <div class="w-full border-t border-gray-200 dark:border-gray-800"></div>
-                        </div>
-                        <div class="relative flex justify-center text-sm">
-                            <span class="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">
-                                O
-                            </span>
-                        </div>
-                    </div>
-
-                    <form asp-controller="Home" asp-action="Login" method="post">
+                    <form asp-controller="Auth" asp-action="Login" method="post">
                         <div class="space-y-5">
                             <!-- Email -->
                             <div>
@@ -73,7 +55,7 @@
                                 <div x-data="{ checkboxToggle: false }">
                                 </div>
 
-                                <a asp-controller="Home"
+                                <a asp-controller="Auth"
                                    asp-action="RecoverPassword"
                                    class="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400">
                                     ¿Olvidaste tu contraseña?
@@ -93,8 +75,8 @@
                     <div class="mt-5">
                         <p class="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                             ¿No tienes una cuenta?
-                            <a asp-controller="Home"
-                               asp-action="Register"
+                            <a asp-controller="Auth"
+                               asp-action="RegisterUser"
                                class="text-brand-500 hover:text-brand-600 dark:text-brand-400">
                                 Regístrate
                             </a>
