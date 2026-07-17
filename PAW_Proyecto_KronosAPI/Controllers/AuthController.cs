@@ -11,7 +11,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
     public class AuthController(IConfiguration _config) : Controller
     {
         
-        [HttpPost]
+        [HttpPost("RegisterUserAPI")]
         public IActionResult RegisterUserAPI(UserRequestModel model)
 
         {
