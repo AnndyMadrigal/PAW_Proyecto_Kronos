@@ -9,6 +9,12 @@
         <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
             <div>
                 <div class="mb-2 sm:mb-5">
+                    @if (TempData["Mensaje"] != null)
+                    {
+                        <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400">
+                            @TempData["Mensaje"]
+                        </div>
+                    }
                     <h1 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
                         Iniciar sesión
                     </h1>

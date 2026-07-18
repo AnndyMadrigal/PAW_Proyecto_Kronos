@@ -34,8 +34,9 @@ namespace PAW_Proyecto_Kronos.Controllers
             }
             else if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
-                return View();
+                //Mostrar este mensaje en la vista y que al recargar la pagina no se pierda
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
+                return View(model);
             }
             throw new Exception("Error al iniciar sesión");
         }
@@ -60,6 +61,7 @@ namespace PAW_Proyecto_Kronos.Controllers
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
+                TempData["Mensaje"] = "Usuario registrado correctamente.";
                 return RedirectToAction("Login", "Auth");
             }
             else if (response.StatusCode == HttpStatusCode.BadRequest)
