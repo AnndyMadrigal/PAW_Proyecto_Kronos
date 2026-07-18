@@ -3,5 +3,9 @@
     public interface IHelpersService
     {
         string GenerateToken(int id);
+
+        Task SendMailAsync(string to, string subject, string body);
+
+        string GenerateRandomPassword();
     }
 }

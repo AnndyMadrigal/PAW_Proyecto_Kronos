@@ -27,6 +27,40 @@ namespace PAW_Proyecto_KronosAPI.Services
             return tokenHandler.WriteToken(token);
         }
 
+        public string GenerateRandomPassword()
+        {
+            return Guid.NewGuid().ToString("N")[..10];
+        }
 
+        public void SendEmail(string to, string subject, string body)
+        {
+            var message = new MimeMessage();
+            var emailSender = _config["Email:EmailAccount"]!;
+            var applicationPassword = _config["Email:ApplicationPassword"]!;
+
+            if (string.IsNullOrEmpty(applicationPassword))
+                return;
+                
+            message.From.Add(new MailboxAddress(string.Empty, emailSender));
+            message.To.Add(new MailboxAddress(to));
+            message.Subject = subject;
+
+            message.Body = new TextPart("plain")
+            {
+                Text = body
+            };
+
+            using (var client = new SmtpClient())
+            try
+            {
+                await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(emailSender, applicationPassword);
+                await client.SendAsync(message);
+            }
+            finally
+            {
+                client.Disconnect(true);
+            }
+        }
     }
 }

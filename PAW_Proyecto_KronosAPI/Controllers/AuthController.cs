@@ -65,5 +65,53 @@ namespace PAW_Proyecto_KronosAPI.Controllers
 
             }
         }
+
+        [HttpPost("RecoverPasswordAPI")]
+        public IActionResult RecoverPasswordAPI(UserModel model)
+
+        {
+            using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
+            {
+
+                //1. validar primero que el correo exista
+                var parameters = new DynamicParameters();
+                parameters.Add("@email", model.email);
+                
+                var emailValidation = context.QueryFirstOrDefault<UserModel>("spValidateEmail", parameters);
+                
+                if (emailValidation == null)
+                    return NotFound("El correo electronico no se encuentra registrado");
+
+                //2. generar contraseña aleatoria
+                var tempPassword = _helpers.GenerateRandomPassword();
+                var tempPasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+                
+                parameter = new DynamicParameters();
+                parameter.Add("@id", emailValidation.id);
+                parameter.Add("@password", tempPasswordHash);
+
+                var updatePassword = context.Execute("spUpdatePassword", parameter);
+                if (updatePassword > 0)
+                {
+
+                    //3. enviar correo electronico con la nueva contraseña
+                    string route = Path.Combine(AppContext.BaseDirectory, "Templates", "RecoverPassword.html");
+                    string htmlTemplate = System.IO.File.ReadAllText(route);
+
+                    htmlTemplate = htmlTemplate.Replace("{{TEMP}}", tempPassword);
+                    htmlTemplate = htmlTemplate.Replace("{{Name}}", emailValidation.full_name);
+                    htmlTemplate = htmlTemplate.Replace("{{Year}}", DateTime.Now.Year.ToString());
+
+                    await _helpers.SendMailAsync(emailValidation.email, "Recuperacion de contraseña", htmlTemplate);
+                    
+                    return Ok("Se ha enviado un correo electronico con la nueva contraseña");
+                }
+                else
+                {
+                    return BadRequest("Error al recuperar la contraseña");
+                }
+
+            }
+        }
     }
 }
