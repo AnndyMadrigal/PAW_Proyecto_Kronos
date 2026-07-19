@@ -16,4 +16,10 @@
     <PackageReference Include="Microsoft.OpenApi" Version="2.10.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Templates\RecoverPassword.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

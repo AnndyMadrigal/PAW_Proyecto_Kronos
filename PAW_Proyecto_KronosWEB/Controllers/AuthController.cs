@@ -80,18 +80,28 @@ namespace PAW_Proyecto_Kronos.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult RecoverPassword(string email)
+        public IActionResult RecoverPassword(UserModel model)
         {
-            if (string.IsNullOrWhiteSpace(email))
+            using var client = _http.CreateClient();
+            var url = _config["Valores:UrlApi"] + "Auth/RecoverPasswordAPI";
+            var response = client.PostAsJsonAsync(url, model).Result;
+
+            if (response.StatusCode == HttpStatusCode.OK)
             {
-                ModelState.AddModelError(string.Empty, "Ingresa un correo electrónico válido.");
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
+                return RedirectToAction("Login", "Auth");
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
                 return View();
             }
-
-            TempData["SuccessMessage"] = "Si el correo existe, recibirás instrucciones para restablecer tu contraseña.";
-
-            return RedirectToAction(nameof(RecoverPassword));
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
+                return View();
+            }
+            throw new Exception("Error al recuperar la contraseña");
         }
     }
-}
+}   
