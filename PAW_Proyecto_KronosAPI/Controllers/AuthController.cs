@@ -67,7 +67,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
         }
 
         [HttpPost("RecoverPasswordAPI")]
-        public IActionResult RecoverPasswordAPI(UserEmailRequestModel model)
+        public async Task<IActionResult> RecoverPasswordAPI(UserEmailRequestModel model)
 
         {
             using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
@@ -77,7 +77,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 var parameters = new DynamicParameters();
                 parameters.Add("@email", model.email);
                 
-                var emailValidation = context.QueryFirstOrDefault<UserEmailRequestModel>("spValidateEmail", parameters);
+                var emailValidation = context.QueryFirstOrDefault<UserResponseModel>("spValidateEmail", parameters);
                 
                 if (emailValidation == null)
                     return NotFound("El correo electronico no se encuentra registrado");
@@ -86,11 +86,11 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 var tempPassword = _helpers.GenerateRandomPassword();
                 var tempPasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
                 
-                parameter = new DynamicParameters();
-                parameter.Add("@id", emailValidation.id);
-                parameter.Add("@password", tempPasswordHash);
+                parameters = new DynamicParameters();
+                parameters.Add("@id", emailValidation.id);
+                parameters.Add("@password", tempPasswordHash);
 
-                var updatePassword = context.Execute("spUpdatePassword", parameter);
+                var updatePassword = context.Execute("spUpdatePassword", parameters);
                 if (updatePassword > 0)
                 {
 
@@ -102,7 +102,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                     htmlTemplate = htmlTemplate.Replace("{{Name}}", emailValidation.full_name);
                     htmlTemplate = htmlTemplate.Replace("{{Year}}", DateTime.Now.Year.ToString());
 
-                    await _helpers.SendMailAsync(emailValidation.email, "Recuperacion de contraseña", htmlTemplate);
+                    await _helpers.SendEmail(emailValidation.email, "Recuperacion de contraseña", htmlTemplate);
                     
                     return Ok("Se ha enviado un correo electronico con la nueva contraseña");
                 }

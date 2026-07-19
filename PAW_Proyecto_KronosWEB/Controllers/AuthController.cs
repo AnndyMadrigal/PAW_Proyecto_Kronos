@@ -88,12 +88,17 @@ namespace PAW_Proyecto_Kronos.Controllers
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
-                TempData["Mensaje"] = "Se han enviado instrucciones para restablecer su contraseña.";
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
                 return RedirectToAction("Login", "Auth");
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
+                return View();
             }
             else if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
                 return View();
             }
             throw new Exception("Error al recuperar la contraseña");

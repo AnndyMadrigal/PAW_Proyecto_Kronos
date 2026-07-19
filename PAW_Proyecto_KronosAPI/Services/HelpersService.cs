@@ -32,7 +32,7 @@ namespace PAW_Proyecto_KronosAPI.Services
             return Guid.NewGuid().ToString("N")[..10];
         }
 
-        public void SendEmail(string to, string subject, string body)
+        public async Task SendEmail(string to, string subject, string body)
         {
             var message = new MimeMessage();
             var emailSender = _config["Email:EmailAccount"]!;
@@ -42,15 +42,15 @@ namespace PAW_Proyecto_KronosAPI.Services
                 return;
                 
             message.From.Add(new MailboxAddress(string.Empty, emailSender));
-            message.To.Add(new MailboxAddress(to));
+            message.To.Add(MailboxAddress.Parse(to));
             message.Subject = subject;
 
-            message.Body = new TextPart("plain")
+            message.Body = new TextPart("html")
             {
                 Text = body
             };
 
-            using (var client = new SmtpClient())
+            using var client = new SmtpClient();
             try
             {
                 await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
