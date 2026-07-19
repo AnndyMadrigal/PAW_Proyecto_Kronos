@@ -67,7 +67,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
         }
 
         [HttpPost("RecoverPasswordAPI")]
-        public IActionResult RecoverPasswordAPI(UserModel model)
+        public IActionResult RecoverPasswordAPI(UserEmailRequestModel model)
 
         {
             using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
@@ -77,7 +77,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 var parameters = new DynamicParameters();
                 parameters.Add("@email", model.email);
                 
-                var emailValidation = context.QueryFirstOrDefault<UserModel>("spValidateEmail", parameters);
+                var emailValidation = context.QueryFirstOrDefault<UserEmailRequestModel>("spValidateEmail", parameters);
                 
                 if (emailValidation == null)
                     return NotFound("El correo electronico no se encuentra registrado");
