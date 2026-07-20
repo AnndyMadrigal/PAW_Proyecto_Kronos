@@ -73,6 +73,7 @@ namespace PAW_Proyecto_Kronos.Controllers
         }
         #endregion
 
+        #region RecoverPassword
         [HttpGet]
         public IActionResult RecoverPassword()
         {
@@ -103,5 +104,15 @@ namespace PAW_Proyecto_Kronos.Controllers
             }
             throw new Exception("Error al recuperar la contraseña");
         }
+        #endregion
+
+        #region Logout
+        [HttpGet]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login", "Auth");
+        }
+        #endregion
     }
 }   
