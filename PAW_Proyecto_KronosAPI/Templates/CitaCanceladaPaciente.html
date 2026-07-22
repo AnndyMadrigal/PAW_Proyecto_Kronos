@@ -1,0 +1,55 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cita cancelada - Kronos</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef3f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #eef3f4; padding: 32px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; font-family: Arial, Helvetica, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                    <tr>
+                        <td align="center" style="background-color: #1f4e56; padding: 28px 20px;">
+                            <img src="cid:logoKronos" alt="Kronos" width="56" style="display: block; margin: 0 auto 8px auto;" />
+                            <span style="color: #ffffff; font-size: 20px; font-weight: bold; letter-spacing: 1px;">KRONOS</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 32px 32px 24px 32px; color: #333333;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 20px; color: #1f4e56;">Tu cita ha sido cancelada</h1>
+
+                            <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5;">Hola <strong>{{Nombre}}</strong>,</p>
+
+                            <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.5;">Te informamos que la siguiente cita fue <strong>cancelada</strong>:</p>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #fdf3f3; border-left: 4px solid #c0392b; border-radius: 6px;">
+                                <tr>
+                                    <td style="padding: 16px 18px; font-size: 14px; line-height: 1.7; color: #333333;">
+                                        <strong>Tipo de cita:</strong> {{TipoCita}}<br>
+                                        <strong>Fecha y hora:</strong> {{Fecha}}<br>
+                                        <strong>Ubicación:</strong> {{Ubicacion}} — {{Direccion}}<br>
+                                        <strong>Colaborador asignado:</strong> {{Colaborador}}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.5;">Si deseas agendar una nueva cita, puedes hacerlo desde el sistema o contactándonos directamente.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 32px; background-color: #f4f8f8; border-top: 1px solid #e3ebec;">
+                            <p style="margin: 0; font-size: 11px; color: #8a9a9d; text-align: center; line-height: 1.6;">
+                                Este es un correo automático, por favor no respondas a este mensaje.<br>
+                                © {{Year}} Kronos — Todos los derechos reservados.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
