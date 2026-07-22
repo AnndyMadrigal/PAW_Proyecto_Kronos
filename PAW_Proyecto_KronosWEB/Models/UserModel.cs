@@ -12,5 +12,6 @@
         public int role_id { get; set; }
         public string RoleName { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
+        public string confirmPassword { get; set; } = string.Empty;
     }
 }
