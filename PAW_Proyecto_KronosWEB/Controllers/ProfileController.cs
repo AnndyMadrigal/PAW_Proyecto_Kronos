@@ -83,6 +83,7 @@ namespace PAW_Proyecto_Kronos.Controllers
             {
                 TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
                 HttpContext.Session.SetString("Name", model!.username);
+                HttpContext.Session.SetString("Full_Name", model!.full_name);
 
                 return View("UserInfo", model);
             }

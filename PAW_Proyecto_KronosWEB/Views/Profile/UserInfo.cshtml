@@ -1,11 +1,13 @@
-﻿@model UserModel
+@model UserModel
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Perfil de Usuario";
 
     var userName = Context.Session.GetString("Name") ?? "Usuario";
+    var fullName = Context.Session.GetString("Full_Name") ?? Context.Session.GetString("Full Name") ?? Model?.full_name ?? "";
     var roleName = Context.Session.GetString("RoleName") ?? "Sin Rol Asignado";
-    var userInitial = !string.IsNullOrWhiteSpace(userName) ? userName.Trim().Substring(0, 1).ToUpper() : "U";
+    var displayTitle = !string.IsNullOrWhiteSpace(fullName) ? fullName : userName;
+    var userInitial = !string.IsNullOrWhiteSpace(displayTitle) ? displayTitle.Trim().Substring(0, 1).ToUpper() : "U";
 }
 
 <div class="p-6 max-w-7xl mx-auto space-y-6">
@@ -54,8 +56,12 @@
             <!-- User Info -->
             <div class="flex-1 text-center sm:text-left space-y-1">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">
-                    @userName
+                    @displayTitle
                 </h2>
+                @if (!string.IsNullOrWhiteSpace(fullName) && !string.IsNullOrWhiteSpace(userName))
+                {
+                    <p class="text-xs text-gray-500 dark:text-gray-400">@userName</p>
+                }
                 <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 border border-brand-200 dark:border-brand-500/20">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

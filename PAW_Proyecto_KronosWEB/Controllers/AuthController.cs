@@ -25,6 +25,7 @@ namespace PAW_Proyecto_Kronos.Controllers
 
                 HttpContext.Session.SetString("Authenticated", "1");
                 HttpContext.Session.SetString("Name", data!.username);
+                HttpContext.Session.SetString("Full_Name", data!.full_name);
                 HttpContext.Session.SetInt32("Consecutivo", data!.id);
                 HttpContext.Session.SetString("Token", data!.Token);
                 HttpContext.Session.SetInt32("role_id", data!.role_id);
