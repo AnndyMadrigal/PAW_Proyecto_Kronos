@@ -12,7 +12,6 @@ namespace PAW_Proyecto_Kronos.Controllers
 
         
         #region ChangePassword
-        [ActiveSession]
         [HttpPost]
         public IActionResult ChangePassword(UserModel model)
         {
@@ -44,7 +43,6 @@ namespace PAW_Proyecto_Kronos.Controllers
         #endregion
 
         #region UserInfo
-        [ActiveSession]
         [HttpGet]
         public IActionResult UserInfo()
         {
@@ -68,5 +66,32 @@ namespace PAW_Proyecto_Kronos.Controllers
         }
         #endregion
 
+        #region UpdateUserInfo
+        [HttpPost]
+        public IActionResult UpdateUserInfo(UserModel model)
+        {
+
+            model.id = HttpContext.Session.GetInt32("Consecutivo")!.Value;
+
+            using var client = _http.CreateClient();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", HttpContext.Session.GetString("Token"));
+            var url = _config["Valores:UrlApi"] + "Profile/UpdateUserInfoAPI";
+            var response = client.PutAsJsonAsync(url, model).Result;
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
+                HttpContext.Session.SetString("Name", model!.username);
+
+                return View("UserInfo", model);
+            }
+            else 
+            {
+                TempData["MensajeError"] = response.Content.ReadAsStringAsync().Result;
+                return RedirectToAction("UserInfo");
+            }
+        }
+        #endregion
     }
 } 

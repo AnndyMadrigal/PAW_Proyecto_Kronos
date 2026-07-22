@@ -60,51 +60,27 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             }
         }
 
-        [HttpPost("RecoverPasswordAPI")]
-        public async Task<IActionResult> RecoverPasswordAPI(UserEmailRequestModel model)
-
+        [HttpPut("UpdateUserInfoAPI")]
+        public IActionResult UpdateUserInfoAPI(UserInfoUpdateRequestModel model)
         {
             using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
             {
-
-                //1. validar primero que el correo exista
+               
                 var parameters = new DynamicParameters();
-                parameters.Add("@email", model.email);
-                
-                var emailValidation = context.QueryFirstOrDefault<UserResponseModel>("spValidateEmail", parameters);
-                
-                if (emailValidation == null)
-                    return NotFound("El correo electronico no se encuentra registrado");
+                parameters.Add("@id", model.id);
+                parameters.Add("@username", model.username);
+                parameters.Add("@full_name", model.full_name);
+                parameters.Add("@phone", model.phone);
 
-                //2. generar contraseña aleatoria
-                var tempPassword = _helpers.GenerateRandomPassword();
-                var tempPasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
-                
-                parameters = new DynamicParameters();
-                parameters.Add("@id", emailValidation.id);
-                parameters.Add("@password", tempPasswordHash);
-
-                var updatePassword = context.Execute("spUpdatePassword", parameters);
-                if (updatePassword > 0)
+                var response = context.Execute("spUpdateUserInfo", parameters);
+                if (response > 0)
                 {
-
-                    //3. enviar correo electronico con la nueva contraseña
-                    string route = Path.Combine(AppContext.BaseDirectory, "Templates", "RecoverPassword.html");
-                    string htmlTemplate = System.IO.File.ReadAllText(route);
-
-                    htmlTemplate = htmlTemplate.Replace("{{TEMP}}", tempPassword);
-                    htmlTemplate = htmlTemplate.Replace("{{Name}}", emailValidation.full_name);
-                    htmlTemplate = htmlTemplate.Replace("{{Year}}", DateTime.Now.Year.ToString());
-
-                    await _helpers.SendEmail(emailValidation.email, "Recuperacion de contraseña", htmlTemplate);
-                    
-                    return Ok("Se ha enviado un correo electronico con la nueva contraseña");
+                    return Ok("Información del usuario actualizada correctamente");
                 }
                 else
                 {
-                    return BadRequest("Error al recuperar la contraseña");
+                    return BadRequest("No se pudo actualizar la información del usuario");
                 }
-
             }
         }
     }

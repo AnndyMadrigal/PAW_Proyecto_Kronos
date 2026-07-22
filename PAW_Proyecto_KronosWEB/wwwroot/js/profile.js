@@ -59,7 +59,7 @@ $(document).ready(function () {
                 },
                 full_name: {
                     required: true,
-                    minlength: 3
+                    minlength: 6
                 },
                 phone: {
                     required: true,
