@@ -40,15 +40,19 @@ namespace PAW_Proyecto_KronosAPI.Services
 
             if (string.IsNullOrEmpty(applicationPassword))
                 return;
-                
-            message.From.Add(new MailboxAddress(string.Empty, emailSender));
+            message.From.Add(new MailboxAddress("Kronos", emailSender));
             message.To.Add(MailboxAddress.Parse(to));
             message.Subject = subject;
 
-            message.Body = new TextPart("html")
+            var builder = new BodyBuilder { HtmlBody = body };
+            var logoPath = Path.Combine(AppContext.BaseDirectory, "Templates", "iconKronos.png");
+            if (File.Exists(logoPath))
             {
-                Text = body
-            };
+                var logo = builder.LinkedResources.Add(logoPath);
+                logo.ContentId = "logoKronos";
+            }
+
+            message.Body = builder.ToMessageBody();
 
             using var client = new SmtpClient();
             try

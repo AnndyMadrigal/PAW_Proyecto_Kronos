@@ -1,0 +1,116 @@
+﻿@model CitaCalendarViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Citas - Calendario";
+    var diasSemana = new[] { "Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb" };
+}
+
+<div class="p-6">
+    <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">Citas</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 capitalize">@Model.MonthName</p>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row">
+            <a asp-action="Index" asp-route-year="@(Model.Month == 1 ? Model.Year - 1 : Model.Year)" asp-route-month="@(Model.Month == 1 ? 12 : Model.Month - 1)"
+               class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                ← Mes anterior
+            </a>
+            <a asp-action="Index" asp-route-year="@(Model.Month == 12 ? Model.Year + 1 : Model.Year)" asp-route-month="@(Model.Month == 12 ? 1 : Model.Month + 1)"
+               class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                Mes siguiente →
+            </a>
+            <a asp-action="Crear"
+               class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
+                + Nueva cita
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400">
+            @TempData["Mensaje"]
+        </div>
+    }
+
+    <!-- Filtros -->
+    <form method="get" asp-action="Index" class="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:grid-cols-2 xl:grid-cols-4">
+        <input type="hidden" name="year" value="@Model.Year" />
+        <input type="hidden" name="month" value="@Model.Month" />
+
+        <select name="staffMemberId" onchange="this.form.submit()" class="h-10 rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+            <option value="">Todos los colaboradores</option>
+            @foreach (var c in Model.Colaboradores)
+            {
+                <option value="@c.id" selected="@(Model.StaffMemberId == c.id)">@c.first_name @c.last_name</option>
+            }
+        </select>
+
+        <select name="statusId" onchange="this.form.submit()" class="h-10 rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+            <option value="">Todos los estados</option>
+            @foreach (var e in Model.Estados)
+            {
+                <option value="@e.id" selected="@(Model.StatusId == e.id)">@e.name</option>
+            }
+        </select>
+
+        <select name="eventTypeId" onchange="this.form.submit()" class="h-10 rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+            <option value="">Todos los tipos</option>
+            @foreach (var t in Model.TiposCita)
+            {
+                <option value="@t.id" selected="@(Model.EventTypeId == t.id)">@t.name</option>
+            }
+        </select>
+
+        <a asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+           class="flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            Limpiar filtros
+        </a>
+    </form>
+
+    <!-- Calendario -->
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
+            @foreach (var d in diasSemana)
+            {
+                <div class="p-2 text-center text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">@d</div>
+            }
+        </div>
+
+        @foreach (var semana in Model.Semanas)
+        {
+            <div class="grid grid-cols-7 border-b border-gray-100 last:border-b-0 dark:border-gray-800">
+                @foreach (var dia in semana.Dias)
+                {
+                    <div class="min-h-[110px] border-r border-gray-100 p-2 last:border-r-0 dark:border-gray-800 @(dia.EsDelMesActual ? "" : "bg-gray-50 dark:bg-gray-900/40")">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="text-xs font-medium @(dia.EsHoy ? "flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-white" : (dia.EsDelMesActual ? "text-gray-700 dark:text-gray-300" : "text-gray-400 dark:text-gray-600"))">
+                                @dia.Fecha.Day
+                            </span>
+                        </div>
+
+                        <div class="space-y-1">
+                            @foreach (var cita in dia.Citas.Take(3))
+                            {
+                                <a asp-action="Detalle" asp-route-id="@cita.id"
+                                   class="block truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium
+                                          @(cita.status_value == "cancelled" ? "bg-red-50 text-red-600 line-through dark:bg-red-500/10" :
+                                            cita.status_value == "completed" ? "bg-green-50 text-green-700 dark:bg-green-500/10" :
+                                            "bg-brand-50 text-brand-600 dark:bg-brand-500/10")"
+                                   title="@cita.scheduled_start_at.ToString("HH:mm") - @cita.patient_first_name @cita.patient_last_name">
+                                    @cita.scheduled_start_at.ToString("HH:mm") @cita.patient_first_name @cita.patient_last_name
+                                </a>
+                            }
+                            @if (dia.Citas.Count > 3)
+                            {
+                                <span class="block text-[11px] text-gray-500 dark:text-gray-400">+@(dia.Citas.Count - 3) más</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

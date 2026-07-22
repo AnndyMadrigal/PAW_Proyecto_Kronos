@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PAW_Proyecto_Kronos</title>
+    <title>@ViewData["Title"] - Kronos</title>
+    <link rel="icon" type="image/png" href="~/img/logo/iconKronos.png" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body x-data="{ darkMode: false, sidebarToggle: false }"
@@ -16,13 +17,18 @@
 
         <!-- Sidebar -->
         <aside class="flex flex-col w-64 bg-white border-r border-gray-200 dark:bg-gray-900 dark:border-gray-800">
-            <div class="flex items-center justify-center h-16 px-6 border-b border-gray-200 dark:border-gray-800">
-                <span class="text-xl font-bold text-brand-500">PAW Practica1</span>
+            <div class="flex items-center justify-center gap-2.5 h-16 px-6 border-b border-gray-200 dark:border-gray-800">
+                <img src="~/img/logo/iconKronos.png" alt="Kronos" class="h-11 w-11 object-contain" />
+                <span class="text-xl font-bold text-brand-500">KRONOS</span>
             </div>
             <nav class="flex-1 p-4 space-y-1">
                 <a asp-controller="Home" asp-action="Index"
                    class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
                      Dashboard
+                </a>
+                <a asp-controller="Citas" asp-action="Index"
+                   class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
+                     Citas
                 </a>
                 <a asp-controller="Home" asp-action="Login"
                    class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
@@ -55,6 +61,7 @@
         </div>
     </div>
 
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

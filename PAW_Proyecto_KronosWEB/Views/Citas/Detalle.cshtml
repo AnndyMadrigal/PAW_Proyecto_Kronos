@@ -1,0 +1,170 @@
+﻿@model CitaDetailFullModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Detalle de cita";
+    var cita = Model?.cita;
+}
+
+@* Este modal usa Alpine.js (x-data/x-show), igual que el resto del proyecto
+   (Views/Auth/Login.cshtml ya usa x-data para el toggle de contraseña).
+   Si tu _Layout.cshtml todavia no carga Alpine.js, agrega antes de
+   @@await RenderSectionAsync("Scripts", required: false):
+   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script> *@
+<style>[x-cloak] { display: none !important; }</style>
+
+<div class="p-6 max-w-4xl" x-data="{ mostrarCancelar: false }">
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400">
+            @TempData["Mensaje"]
+        </div>
+    }
+
+    @if (cita == null)
+    {
+        <p class="text-sm text-gray-500 dark:text-gray-400">No se encontró la cita.</p>
+    }
+    else
+    {
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+                    Cita #@cita.id — @cita.event_type_name
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    @cita.scheduled_start_at.ToString("dddd dd/MM/yyyy, HH:mm") - @cita.scheduled_end_at.ToString("HH:mm")
+                </p>
+            </div>
+
+            <span class="inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium
+                         @(cita.status_value == "cancelled" ? "bg-red-50 text-red-600 dark:bg-red-500/10" :
+                           cita.status_value == "completed" ? "bg-green-50 text-green-700 dark:bg-green-500/10" :
+                           cita.status_value == "rescheduled" ? "bg-orange-50 text-orange-700 dark:bg-orange-500/10" :
+                           "bg-brand-50 text-brand-600 dark:bg-brand-500/10")">
+                @cita.status_name
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="lg:col-span-2 space-y-6">
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Paciente</h2>
+                    @if (cita.patient_id != null)
+                    {
+                        <p class="text-gray-800 dark:text-white/90 font-medium">@cita.patient_first_name @cita.patient_last_name</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@cita.patient_email · @cita.patient_phone</p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Sin paciente asociado.</p>
+                    }
+                </div>
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Colaborador</h2>
+                    @if (cita.main_staff_member_id != null)
+                    {
+                        <p class="text-gray-800 dark:text-white/90 font-medium">@cita.staff_first_name @cita.staff_last_name</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@cita.staff_email · @cita.staff_phone</p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Sin colaborador asignado.</p>
+                    }
+                </div>
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ubicación</h2>
+                    <p class="text-gray-800 dark:text-white/90 font-medium">@cita.location_type_name</p>
+                    @if (!string.IsNullOrEmpty(cita.address_line))
+                    {
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@cita.address_line @cita.reference</p>
+                    }
+                    @if (!string.IsNullOrEmpty(cita.location_description))
+                    {
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@cita.location_description</p>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(cita.summary))
+                {
+                    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Notas</h2>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">@cita.summary</p>
+                    </div>
+                }
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Historial de estados</h2>
+                    <ul class="space-y-3">
+                        @foreach (var h in Model!.historial)
+                        {
+                            <li class="border-l-2 border-brand-300 pl-3">
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    @(h.old_status_name != null ? $"{h.old_status_name} → {h.new_status_name}" : h.new_status_name)
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    @h.changed_at.ToString("dd/MM/yyyy HH:mm") · @h.changed_by_full_name
+                                </p>
+                                @if (!string.IsNullOrEmpty(h.reason))
+                                {
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">"@h.reason"</p>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                @if (cita.status_value != "cancelled" && cita.status_value != "completed")
+                {
+                    <a asp-action="Editar" asp-route-id="@cita.id"
+                       class="block w-full rounded-lg bg-brand-500 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-brand-600">
+                        Editar cita
+                    </a>
+
+                    <button type="button" @@click="mostrarCancelar = true"
+                            class="block w-full rounded-lg border border-red-300 px-4 py-2.5 text-center text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10">
+                        Cancelar cita
+                    </button>
+                }
+
+                <a asp-action="Index"
+                   class="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">
+                    Volver al calendario
+                </a>
+            </div>
+        </div>
+
+        <!-- Modal simple de cancelacion -->
+        <div x-show="mostrarCancelar" x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-gray-900" @@click.outside="mostrarCancelar = false">
+                <h3 class="mb-2 text-lg font-semibold text-gray-800 dark:text-white/90">Cancelar cita</h3>
+                <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                    Se notificará por correo al paciente y al colaborador. Esta acción no se puede deshacer.
+                </p>
+                <form asp-action="Cancelar" method="post">
+                    <input type="hidden" name="id" value="@cita.id" />
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Motivo de cancelación<span class="text-error-500">*</span></label>
+                    <textarea name="reason" rows="3" required
+                              class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+
+                    <div class="mt-4 flex justify-end gap-3">
+                        <button type="button" @@click="mostrarCancelar = false"
+                                class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">
+                            Volver
+                        </button>
+                        <button type="submit"
+                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                            Confirmar cancelación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+</div>

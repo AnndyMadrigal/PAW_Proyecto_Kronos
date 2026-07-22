@@ -1,0 +1,122 @@
+﻿@model CitaFormModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Editar cita";
+}
+
+<div class="p-6 max-w-3xl">
+    <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">Editar cita #@Model.service_event_id</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Si cambias la fecha/hora, la cita pasa a estado "Reprogramada" y se revalida disponibilidad.
+        </p>
+    </div>
+
+    @if (ViewBag.Mensaje != null)
+    {
+        <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400">
+            @ViewBag.Mensaje
+        </div>
+    }
+
+    @if (Model.HorariosSugeridos.Any())
+    {
+        <div class="p-4 mb-4 text-sm rounded-lg bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400">
+            <p class="font-medium mb-2">El colaborador no está disponible en ese horario. Horarios alternativos sugeridos:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                @foreach (var h in Model.HorariosSugeridos)
+                {
+                    <li>@h.candidate_start.ToString("dd/MM/yyyy HH:mm") - @h.candidate_end.ToString("HH:mm")</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form asp-action="Editar" method="post" class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <input type="hidden" asp-for="service_event_id" />
+
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+            <div class="sm:col-span-2">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Paciente <span class="text-red-500">*</span></label>
+                <select asp-for="patient_id" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    <option value="">-- Seleccione un paciente --</option>
+                    @foreach (var p in Model.Pacientes)
+                    {
+                        <option value="@p.id" selected="@(Model.patient_id == p.id)">@p.first_name @p.last_name @(string.IsNullOrEmpty(p.identification_number) ? "" : $"({p.identification_number})")</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de cita<span class="text-error-500">*</span></label>
+                <select asp-for="event_type_id" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    @foreach (var t in Model.TiposCita)
+                    {
+                        <option value="@t.id" selected="@(Model.event_type_id == t.id)">@t.name</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Colaborador asignado</label>
+                <select asp-for="main_staff_member_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    <option value="">-- Sin asignar --</option>
+                    @foreach (var c in Model.Colaboradores)
+                    {
+                        <option value="@c.id" selected="@(Model.main_staff_member_id == c.id)">@c.first_name @c.last_name (@c.staff_role_name)</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Fecha y hora de inicio<span class="text-error-500">*</span></label>
+                <input asp-for="scheduled_start_at" type="datetime-local" required
+                       class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+            </div>
+
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Fecha y hora de fin<span class="text-error-500">*</span></label>
+                <input asp-for="scheduled_end_at" type="datetime-local" required
+                       class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+            </div>
+
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de ubicación<span class="text-error-500">*</span></label>
+                <select asp-for="location_type_id" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    @foreach (var t in Model.TiposUbicacion)
+                    {
+                        <option value="@t.id" selected="@(Model.location_type_id == t.id)">@t.name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Dirección / descripción de ubicación</label>
+                <input asp-for="location_description" type="text"
+                       class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Notas / resumen</label>
+                <textarea asp-for="summary" rows="3"
+                          class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Motivo del cambio</label>
+                <input asp-for="reason" type="text" placeholder="Ej: el paciente solicitó cambio de horario"
+                       class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3">
+            <button type="submit" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+                Guardar cambios
+            </button>
+            <a asp-action="Detalle" asp-route-id="@Model.service_event_id" class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
