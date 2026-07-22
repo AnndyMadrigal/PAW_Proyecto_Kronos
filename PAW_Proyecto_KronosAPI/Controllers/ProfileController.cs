@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace PAW_Proyecto_KronosAPI.Controllers
 {
-    [AllowAnonymous]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ProfileController(IConfiguration _config, IHelpersService _helpers) : Controller
@@ -37,28 +37,24 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             }
         }
 
-        [HttpPost("RegisterUserAPI")]
-        public IActionResult RegisterUserAPI(UserRequestModel model)
+        [HttpGet("UserInfoAPI")]
+        public IActionResult UserInfoAPI(int userId)
 
         {
             using (var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]))
             {
 
                 var parameters = new DynamicParameters();
-                parameters.Add("@username", model.username);
-                parameters.Add("@email", model.email);
-                parameters.Add("@password", model.password);
-                parameters.Add("@full_name", model.full_name);
-                parameters.Add("@phone", model.phone);
-
-                var response = context.Execute("spRegisterBasicUser", parameters);
-                if (response > 0)
+                parameters.Add("@id", userId);
+                
+                var response = context.QueryFirstOrDefault<UserResponseModel>("spGetUserByID", parameters);
+                if (response != null)
                 {
-                    return Ok("Usuario registrado correctamente");
+                    return Ok(response);
                     
                 } else
                 {
-                    return BadRequest("El correo electronico ya se encuentra registrado");
+                    return NotFound("No se ha podido obtener la informacion del usuario");
                 }
 
             }

@@ -9,16 +9,14 @@ namespace PAW_Proyecto_Kronos.Controllers
     public class ProfileController(IHttpClientFactory _http, IConfiguration _config) : Controller
     {
         [ActiveSession]
-        [HttpGet]
-        public IActionResult Index()
-        {
-            return View();
-        }
+
+        
         #region ChangePassword
         [ActiveSession]
         [HttpPost]
         public IActionResult ChangePassword(UserModel model)
         {
+
             model.id = HttpContext.Session.GetInt32("Consecutivo")!.Value;
 
             using var client = _http.CreateClient();
@@ -45,91 +43,30 @@ namespace PAW_Proyecto_Kronos.Controllers
         }
         #endregion
 
-        #region UpdateProfile
+        #region UserInfo
         [ActiveSession]
-        [HttpPost]
-        public IActionResult UpdateProfile(UserModel model)
-        {
-            if (!string.IsNullOrWhiteSpace(model.username))
-            {
-                HttpContext.Session.SetString("Name", model.username);
-            }
-            TempData["MensajeExito"] = "Información del perfil actualizada con éxito.";
-            return RedirectToAction("Index");
-        }
-        #endregion
-
-        #region RegisterUser
         [HttpGet]
-        public IActionResult RegisterUser()
+        public IActionResult UserInfo()
         {
-            return View();
-        }
-        
-        [HttpPost]
-        public IActionResult RegisterUser(UserModel model)
-
-        {
-            model.password = BCrypt.Net.BCrypt.HashPassword(model.password);
+            var userId = HttpContext.Session.GetInt32("Consecutivo")!.Value;
 
             using var client = _http.CreateClient();
-            var url = _config["Valores:UrlApi"] + "Auth/RegisterUserAPI";
-            var response = client.PostAsJsonAsync(url, model).Result;
 
-            if (response.StatusCode == HttpStatusCode.OK)
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", HttpContext.Session.GetString("Token"));
+            var url = _config["Valores:UrlApi"] + "Profile/UserInfoAPI?userId=" + userId;
+            var response = client.GetAsync(url).Result;
+
+            if (response.IsSuccessStatusCode)
             {
-                TempData["Mensaje"] = "Usuario registrado correctamente.";
-                return RedirectToAction("Login", "Auth");
+                var data = response.Content.ReadFromJsonAsync<UserModel>().Result;
+                
+                return View("UserInfo", data);
             }
-            else if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                ViewBag.Mensaje = response.Content.ReadAsStringAsync().Result;
-                return View();
-            }
-            throw new Exception("Error al registrar el usuario");
+
+            TempData["MensajeError"] = "Error al obtener la información del usuario.";
+            return View("UserInfo", new UserModel());
         }
         #endregion
 
-        #region RecoverPassword
-        [HttpGet]
-        public IActionResult RecoverPassword()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        public IActionResult RecoverPassword(UserModel model)
-        {
-            using var client = _http.CreateClient();
-            var url = _config["Valores:UrlApi"] + "Auth/RecoverPasswordAPI";
-            var response = client.PostAsJsonAsync(url, model).Result;
-
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
-                return RedirectToAction("Login", "Auth");
-            }
-            else if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
-                return View();
-            }
-            else if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                TempData["Mensaje"] = response.Content.ReadAsStringAsync().Result;
-                return View();
-            }
-            throw new Exception("Error al recuperar la contraseña");
-        }
-        #endregion
-
-        #region Logout
-        [HttpGet]
-        public IActionResult Logout()
-        {
-            HttpContext.Session.Clear();
-            return RedirectToAction("Login", "Auth");
-        }
-        #endregion
     }
-}   
+} 
