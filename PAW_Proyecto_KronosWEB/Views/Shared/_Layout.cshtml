@@ -1,4 +1,9 @@
-﻿<!DOCTYPE html>
+@{
+    var name = Context.Session.GetString("Name");
+    var roleName = Context.Session.GetString("RoleName");
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -6,6 +11,7 @@
     <title>@ViewData["Title"] - Kronos</title>
     <link rel="icon" type="image/png" href="~/img/logo/iconKronos.png" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body x-data="{ darkMode: false, sidebarToggle: false }"
       x-init="darkMode=JSON.parse(localStorage.getItem('darkMode'));
@@ -30,6 +36,10 @@
                    class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
                      Citas
                 </a>
+                <a asp-controller="Home" asp-action="Inventory"
+                   class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
+                     Inventario
+                </a>
                 <a asp-controller="Home" asp-action="Login"
                    class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
                      Login
@@ -47,10 +57,61 @@
             <!-- Top Navbar -->
             <header class="flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
                 <h2 class="text-sm font-medium text-gray-700 dark:text-gray-300">@ViewData["Title"]</h2>
-                <button onclick="event.preventDefault(); darkMode = !darkMode"
-                        class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">
-                    🌙
-                </button>
+                    <div class="flex items-center gap-4">
+                        <div class="relative" x-data="{ open: false }">
+                            <!-- Dropdown Button -->
+                            <button @@click="open = !open" type="button" class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 focus:outline-none transition-colors duration-200 cursor-pointer">
+                                <!-- User Avatar Initial -->
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-brand-500 text-white font-bold text-sm shadow-sm">
+                                    @(!string.IsNullOrWhiteSpace(name) ? name.Trim().Substring(0, 1).ToUpper() : "U")
+                                </div>
+                                <span class="max-w-[150px] truncate">@name</span>
+                                <!-- Chevron Icon -->
+                                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div x-show="open"
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                 @@click.outside="open = false"
+                                 class="absolute right-0 z-50 w-56 mt-2 origin-top-right bg-white border border-gray-200 rounded-xl shadow-lg dark:bg-gray-800 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 focus:outline-none"
+                                 style="display: none;">
+                                
+                                <!-- User Info / Role Section -->
+                                <div class="px-4 py-3">
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 font-normal">Rol de usuario</p>
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5">@roleName</p>
+                                </div>
+
+                                <!-- Menu Options -->
+                                <div class="py-1">
+                                    <a asp-controller="Profile" asp-action="UserInfo" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
+                                        <svg class="w-4.5 h-4.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        Perfil
+                                    </a>
+                                </div>
+
+                                <!-- Logout Action -->
+                                <div class="py-1">
+                                    <a asp-controller="Auth" asp-action="Logout" class="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20">
+                                        <svg class="w-4.5 h-4.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Cerrar Sesión
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>  
             </header>
 
             <!-- Page Content -->
@@ -60,8 +121,8 @@
 
         </div>
     </div>
-
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://code.jquery.com/jquery-4.0.0.min.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/jquery.validate.min.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

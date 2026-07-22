@@ -1,5 +1,3 @@
-
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using PAW_Proyecto_KronosAPI.Services;
@@ -11,6 +9,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IHelpersService, HelpersService>();
+
+// [INVENTARIO] Configurar CORS para permitir llamadas desde el cliente web
+// Nota: Para revertir, eliminar todo este bloque AddCors()
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowWeb", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -28,7 +38,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
+// [INVENTARIO] CORS debe ejecutarse antes que HTTPS redirect
+app.UseCors("AllowWeb");
 
 app.UseHttpsRedirection();
 
