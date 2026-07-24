@@ -1,0 +1,341 @@
+﻿@model ExpedienteDetailFullModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Detalle del expediente";
+    var exp = Model?.expediente;
+}
+
+@* Modal simple con Alpine.js, mismo patron que Views/Citas/Detalle.cshtml *@
+<style>[x-cloak] { display: none !important; }</style>
+
+<div class="p-6 max-w-6xl" x-data="{ tab: 'notas' }">
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400">
+            @TempData["Mensaje"]
+        </div>
+    }
+
+    @if (exp == null)
+    {
+        <p class="text-sm text-gray-500 dark:text-gray-400">No se encontró el expediente.</p>
+    }
+    else
+    {
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+                    Expediente @exp.record_number — @exp.first_name @exp.last_name
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    @(exp.identification_number ?? "Sin identificación") ·
+                    Abierto el @exp.opened_at.ToString("dd/MM/yyyy")
+                </p>
+            </div>
+
+            <span class="inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium
+                         @(exp.status_value == "closed" ? "bg-red-50 text-red-600 dark:bg-red-500/10" :
+                           exp.status_value == "suspended" ? "bg-orange-50 text-orange-700 dark:bg-orange-500/10" :
+                           "bg-green-50 text-green-700 dark:bg-green-500/10")">
+                @exp.status_name
+            </span>
+        </div>
+
+        <div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Datos del paciente</h2>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 text-sm">
+                <p><span class="text-gray-500 dark:text-gray-400">Fecha de nacimiento:</span> @(exp.birth_date?.ToString("dd/MM/yyyy") ?? "—")</p>
+                <p><span class="text-gray-500 dark:text-gray-400">Teléfono:</span> @(exp.phone ?? "—")</p>
+                <p><span class="text-gray-500 dark:text-gray-400">Correo:</span> @(exp.email ?? "—")</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-4 flex gap-1 border-b border-gray-200 dark:border-gray-800">
+            <button @@click="tab = 'notas'" :class="tab === 'notas' ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-500 dark:text-gray-400'"
+                    class="border-b-2 px-4 py-2 text-sm font-medium">Notas clínicas</button>
+            <button @@click="tab = 'diagnosticos'" :class="tab === 'diagnosticos' ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-500 dark:text-gray-400'"
+                    class="border-b-2 px-4 py-2 text-sm font-medium">Diagnóstico</button>
+            <button @@click="tab = 'tratamientos'" :class="tab === 'tratamientos' ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-500 dark:text-gray-400'"
+                    class="border-b-2 px-4 py-2 text-sm font-medium">Tratamientos</button>
+            <button @@click="tab = 'adjuntos'" :class="tab === 'adjuntos' ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-500 dark:text-gray-400'"
+                    class="border-b-2 px-4 py-2 text-sm font-medium">Adjuntos</button>
+        </div>
+
+        <!-- Tab: Notas clinicas (paginadas) -->
+        <div x-show="tab === 'notas'" x-cloak class="space-y-4">
+            <form asp-action="CrearNota" method="post" class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <input type="hidden" name="medical_record_id" value="@exp.id" />
+                <input type="hidden" name="patient_id" value="@exp.patient_id" />
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Colaborador que firma <span class="text-red-500">*</span></label>
+                        <select name="staff_member_id" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var c in (ViewBag.Colaboradores as List<StaffOptionModel> ?? new()))
+                            {
+                                <option value="@c.id">@c.first_name @c.last_name (@c.staff_role_name)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de nota <span class="text-red-500">*</span></label>
+                        <select name="note_type_id" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var t in Model.TiposNota)
+                            {
+                                <option value="@t.id">@t.name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Nota <span class="text-red-500">*</span></label>
+                        <textarea name="note_text" rows="3" required
+                                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+                        Agregar nota
+                    </button>
+                </div>
+            </form>
+
+            <div class="space-y-3">
+                @if (!Model.notas.Any())
+                {
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Todavía no hay notas clínicas registradas.</p>
+                }
+                @foreach (var n in Model.notas)
+                {
+                    <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wide text-brand-500">@n.note_type_name</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">@n.created_at.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">@n.note_text</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">@n.staff_first_name @n.staff_last_name</p>
+                    </div>
+                }
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="flex justify-center gap-2 pt-2">
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <a asp-action="Detalle" asp-route-medicalRecordId="@exp.id" asp-route-page="@i"
+                           class="rounded-lg px-3 py-1.5 text-sm @(i == Model.PageNumber ? "bg-brand-500 text-white" : "border border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300")">
+                            @i
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Tab: Diagnostico (condiciones) -->
+        <div x-show="tab === 'diagnosticos'" x-cloak class="space-y-4">
+            <form asp-action="GuardarDiagnostico" asp-route-medicalRecordId="@exp.id" method="post" class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <input type="hidden" name="patient_id" value="@exp.patient_id" />
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Condición médica (ID) <span class="text-red-500">*</span></label>
+                        <input type="number" name="medical_condition_id" required
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Fecha de diagnóstico</label>
+                        <input type="date" name="diagnosed_at"
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Estado</label>
+                        <select name="status_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">-- Activa (por defecto) --</option>
+                            @foreach (var s in Model.EstadosCondicion)
+                            {
+                                <option value="@s.id">@s.name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Notas</label>
+                        <textarea name="notes" rows="2"
+                                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+                        Guardar diagnóstico
+                    </button>
+                </div>
+            </form>
+
+            <div class="space-y-3">
+                @if (!Model.diagnosticos.Any())
+                {
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No hay diagnósticos registrados.</p>
+                }
+                @foreach (var d in Model.diagnosticos)
+                {
+                    <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="font-medium text-gray-800 dark:text-white/90">@d.condition_name</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">@(d.status_name ?? "—")</span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Diagnosticado: @(d.diagnosed_at?.ToString("dd/MM/yyyy") ?? "—")</p>
+                        @if (!string.IsNullOrEmpty(d.notes))
+                        {
+                            <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">@d.notes</p>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Tab: Tratamientos (medicamentos) -->
+        <div x-show="tab === 'tratamientos'" x-cloak class="space-y-4">
+            <form asp-action="GuardarTratamiento" asp-route-medicalRecordId="@exp.id" method="post" class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <input type="hidden" name="patient_id" value="@exp.patient_id" />
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Medicamento (ID) <span class="text-red-500">*</span></label>
+                        <input type="number" name="medical_medication_id" required
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Dosis</label>
+                        <input type="text" name="dosage" placeholder="Ej: 500mg"
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Frecuencia</label>
+                        <input type="text" name="frequency" placeholder="Ej: cada 8 horas"
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Fecha inicio</label>
+                        <input type="date" name="start_date"
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Fecha fin</label>
+                        <input type="date" name="end_date"
+                               class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Notas</label>
+                        <textarea name="notes" rows="2"
+                                  class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+                        Guardar tratamiento
+                    </button>
+                </div>
+            </form>
+
+            <div class="space-y-3">
+                @if (!Model.tratamientos.Any())
+                {
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No hay tratamientos registrados.</p>
+                }
+                @foreach (var t in Model.tratamientos)
+                {
+                    <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="font-medium text-gray-800 dark:text-white/90">@t.medication_name</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">@(t.dosage ?? "—") · @(t.frequency ?? "—")</span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            @(t.start_date?.ToString("dd/MM/yyyy") ?? "—") - @(t.end_date?.ToString("dd/MM/yyyy") ?? "Continúa")
+                        </p>
+                        @if (!string.IsNullOrEmpty(t.notes))
+                        {
+                            <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">@t.notes</p>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Tab: Adjuntos -->
+        <div x-show="tab === 'adjuntos'" x-cloak class="space-y-4">
+            <form asp-action="SubirAdjunto" method="post" enctype="multipart/form-data"
+                  class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <input type="hidden" name="medicalRecordId" value="@exp.id" />
+                <input type="hidden" name="patientId" value="@exp.patient_id" />
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de documento <span class="text-red-500">*</span></label>
+                        <select name="documentTypeId" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="">-- Seleccione --</option>
+                            @foreach (var d in Model.TiposDocumento)
+                            {
+                                <option value="@d.id">@d.name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Archivo <span class="text-red-500">*</span></label>
+                        <input type="file" name="file" required
+                               class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+                        Subir adjunto
+                    </button>
+                </div>
+            </form>
+
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                @if (!Model.adjuntos.Any())
+                {
+                    <p class="p-4 text-sm text-gray-500 dark:text-gray-400">No hay archivos adjuntos.</p>
+                }
+                else
+                {
+                    <table class="w-full text-left text-sm">
+                        <thead class="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                            <tr>
+                                <th class="px-4 py-3">Archivo</th>
+                                <th class="px-4 py-3">Tipo</th>
+                                <th class="px-4 py-3">Fecha</th>
+                                <th class="px-4 py-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.adjuntos)
+                            {
+                                <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800">
+                                    <td class="px-4 py-3 text-gray-800 dark:text-white/90">@a.file_name</td>
+                                    <td class="px-4 py-3 text-gray-500 dark:text-gray-400">@a.document_type_name</td>
+                                    <td class="px-4 py-3 text-gray-500 dark:text-gray-400">@a.uploaded_at.ToString("dd/MM/yyyy")</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <a asp-action="DescargarAdjunto" asp-route-id="@a.id" asp-route-medicalRecordId="@exp.id"
+                                           class="text-brand-500 hover:underline text-sm font-medium">Descargar</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <div class="mt-6">
+            <a asp-action="Index" class="text-sm text-gray-500 hover:underline dark:text-gray-400">← Volver a la búsqueda</a>
+        </div>
+    }
+</div>

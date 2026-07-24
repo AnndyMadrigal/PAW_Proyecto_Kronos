@@ -1,0 +1,86 @@
+﻿@model ExpedienteSearchViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Expedientes - Buscar paciente";
+}
+
+<div class="p-6">
+    <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">Expedientes Clínicos</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Busca un paciente para consultar o abrir su expediente.
+            </p>
+        </div>
+
+        <a asp-action="RegistrarPaciente"
+           class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
+            + Registrar paciente nuevo
+        </a>
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400">
+            @TempData["Mensaje"]
+        </div>
+    }
+
+    <form method="get" asp-action="Index" class="mb-6 flex gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+        <input type="text" name="search" value="@Model.Search" placeholder="Buscar por nombre, apellido o identificación..."
+               class="h-11 flex-1 rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+        <button type="submit" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+            Buscar
+        </button>
+    </form>
+
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        @if (!Model.Pacientes.Any())
+        {
+            <div class="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                @if (string.IsNullOrWhiteSpace(Model.Search))
+                {
+                    <span>Escribe un nombre o identificación para buscar un paciente.</span>
+                }
+                else
+                {
+                    <span>
+                        No se encontró ningún paciente con "@Model.Search".
+                        <a asp-action="RegistrarPaciente" class="text-brand-500 hover:underline">¿Deseas registrarlo?</a>
+                    </span>
+                }
+            </div>
+        }
+        else
+        {
+            <table class="w-full text-left text-sm">
+                <thead class="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Nombre</th>
+                        <th class="px-4 py-3">Identificación</th>
+                        <th class="px-4 py-3">Contacto</th>
+                        <th class="px-4 py-3 text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Pacientes)
+                    {
+                        <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800">
+                            <td class="px-4 py-3 font-medium text-gray-800 dark:text-white/90">@p.first_name @p.last_name</td>
+                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400">@(p.identification_number ?? "—")</td>
+                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400">@p.email · @p.phone</td>
+                            <td class="px-4 py-3 text-right">
+                                <form asp-action="AbrirExpediente" method="post" class="inline">
+                                    <input type="hidden" name="patientId" value="@p.id" />
+                                    <button type="submit" class="text-brand-500 hover:underline text-sm font-medium">
+                                        Ver / Abrir expediente
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
