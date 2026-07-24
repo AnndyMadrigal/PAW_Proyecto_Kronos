@@ -323,8 +323,18 @@
                                     <td class="px-4 py-3 text-gray-500 dark:text-gray-400">@a.document_type_name</td>
                                     <td class="px-4 py-3 text-gray-500 dark:text-gray-400">@a.uploaded_at.ToString("dd/MM/yyyy")</td>
                                     <td class="px-4 py-3 text-right">
-                                        <a asp-action="DescargarAdjunto" asp-route-id="@a.id" asp-route-medicalRecordId="@exp.id"
-                                           class="text-brand-500 hover:underline text-sm font-medium">Descargar</a>
+                                        <div class="flex justify-end gap-3">
+                                            <a asp-action="DescargarAdjunto" asp-route-id="@a.id" asp-route-medicalRecordId="@exp.id"
+                                               class="text-brand-500 hover:underline text-sm font-medium">Descargar</a>
+                                            <form asp-action="EliminarAdjunto" method="post"
+                                                  onsubmit="return confirm('¿Seguro que deseas eliminar este archivo? Esta acción no se puede deshacer.');">
+                                                <input type="hidden" name="id" value="@a.id" />
+                                                <input type="hidden" name="medicalRecordId" value="@exp.id" />
+                                                <button type="submit" class="text-red-600 hover:underline text-sm font-medium dark:text-red-400">
+                                                    Eliminar
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             }

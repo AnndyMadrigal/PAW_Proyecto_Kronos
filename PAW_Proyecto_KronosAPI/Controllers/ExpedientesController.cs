@@ -367,6 +367,24 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
+        [HttpDelete("EliminarAdjuntoAPI/{id}")]
+        public IActionResult EliminarAdjuntoAPI(int id, int userId)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@attachment_id", id);
+                parameters.Add("@user_id", userId);
+
+                var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
+                    "medical_sp_record_attachments_delete", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                return Ok(response);
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
         #endregion
     }
 }

@@ -161,8 +161,7 @@ namespace PAW_Proyecto_Kronos.Controllers
 
                 // El paciente ya tiene un expediente abierto/suspendido (codigo 50103
                 // del SP -> HTTP 409 Conflict): en vez de mostrar el error, lo
-                // llevamos directo a su expediente existente. DetalleExpedienteAPI
-                // ya sabe resolver el expediente vigente cuando se le pasa patientId.
+                // llevamos directo a su expediente existente.
                 if (response.StatusCode == HttpStatusCode.Conflict)
                 {
                     return RedirectToAction("Detalle", new { patientId });
@@ -425,6 +424,30 @@ namespace PAW_Proyecto_Kronos.Controllers
                 TempData["Mensaje"] = "No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.";
                 return RedirectToAction("Detalle", new { medicalRecordId });
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EliminarAdjunto(int id, int medicalRecordId)
+        {
+            var client = CrearClienteApi();
+
+            try
+            {
+                var response = await client.DeleteAsync($"Expedientes/EliminarAdjuntoAPI/{id}?userId={UsuarioActualId}");
+                TempData["Mensaje"] = response.StatusCode == HttpStatusCode.OK
+                    ? "Archivo adjunto eliminado correctamente."
+                    : await response.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Mensaje"] = "No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.";
+            }
+            catch (TaskCanceledException)
+            {
+                TempData["Mensaje"] = "El servidor tardó demasiado en responder. Intenta de nuevo.";
+            }
+
+            return RedirectToAction("Detalle", new { medicalRecordId });
         }
 
         #endregion
