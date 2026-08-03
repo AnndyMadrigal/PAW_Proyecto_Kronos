@@ -6027,6 +6027,7 @@ BEGIN
 	DECLARE @deleted bit = 0
 	DECLARE @created_at datetime = GETDATE()
 	DECLARE @updated_at datetime = NULL
+	DECLARE @default_role_id int
 
 	SET NOCOUNT OFF;
 
@@ -6036,9 +6037,10 @@ BEGIN
 	INSERT INTO access_tbl_users (username, email, password, full_name, phone, failed_login_attempts, lockout_until, last_login_at, is_active, deleted, created_at,updated_at)
 	VALUES(@username, @email, @password, @full_name, @phone, @failed_login_attempts, @lockout_until, @last_login_at, @is_active, @deleted, @created_at, @updated_at)
 
-	--se inserta en la tabla de roles del usuario, el rol por default es 8 (Usuario)
+	--se inserta en la tabla de roles del usuario, obteniendo el ID real del rol Usuario
+	SELECT @default_role_id = id FROM access_tbl_roles WHERE name = N'Usuario'
 	INSERT INTO access_tbl_user_roles (user_id, role_id, created_at)
-	VALUES(SCOPE_IDENTITY(), 8, GETDATE())
+	VALUES(SCOPE_IDENTITY(), @default_role_id, GETDATE())
 	END
 
 END

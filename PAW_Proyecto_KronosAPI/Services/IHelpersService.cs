@@ -2,7 +2,9 @@
 {
     public interface IHelpersService
     {
-        string GenerateToken(int id);
+        string GenerateToken(int id, string tokenId);
+
+        int ObtenerConsecutivoToken();
 
         Task SendEmail(string to, string subject, string body);
 
