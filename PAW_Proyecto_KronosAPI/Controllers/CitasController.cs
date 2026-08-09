@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PAW_Proyecto_KronosAPI.Models;
@@ -17,34 +17,6 @@ namespace PAW_Proyecto_KronosAPI.Controllers
     [ApiController]
     public class CitasController(IConfiguration _config, IHelpersService _helpers) : Controller
     {
-        // Numeros de error personalizados que lanzan los SPs de citas
-        // (ver 10_rf06_citas_sp.sql), para traducirlos a una respuesta HTTP
-        // clara. El detalle fino de este manejo se termina de pulir en el
-        // paso de "Validaciones y manejo de errores" del RF-06.
-        private IActionResult HandleSqlException(SqlException ex)
-        {
-            return ex.Number switch
-            {
-                50010 => Conflict(ex.Message),      // colaborador no disponible en ese horario
-                50011 => NotFound(ex.Message),      // paciente no existe/inactivo
-                50012 => NotFound(ex.Message),      // colaborador no existe/inactivo
-                50013 => NotFound(ex.Message),      // la cita no existe
-                50014 => BadRequest(ex.Message),    // cita ya cancelada/completada
-                50000 => BadRequest(ex.Message),    // validacion generica del SP
-                _ => StatusCode(500, "Ocurrió un error al procesar la solicitud.")
-            };
-        }
-
-        // RF-06 Paso 5: cualquier error que no sea un SqlException controlado
-        // (timeout, problema de red hacia SQL, etc.) tambien debe devolver
-        // una respuesta clara al WEB en vez de dejar que ASP.NET muestre una
-        // excepcion cruda. Se deja el detalle en consola para diagnosticar.
-        private IActionResult HandleUnexpectedException(Exception ex)
-        {
-            Console.WriteLine("[CitasController] ERROR inesperado: " + ex);
-            return StatusCode(500, "Ocurrió un error inesperado al procesar la solicitud.");
-        }
-
         private static string? ToJson<T>(List<T>? items)
         {
             return (items == null || items.Count == 0) ? null : JsonSerializer.Serialize(items);
@@ -54,305 +26,196 @@ namespace PAW_Proyecto_KronosAPI.Controllers
         public async Task<IActionResult> CrearCitaAPI(CitaCreateRequestModel model)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@patient_id", model.patient_id);
-                parameters.Add("@event_type_id", model.event_type_id);
-                parameters.Add("@scheduled_start_at", model.scheduled_start_at);
-                parameters.Add("@scheduled_end_at", model.scheduled_end_at);
-                parameters.Add("@location_type_id", model.location_type_id);
-                parameters.Add("@location_id", model.location_id);
-                parameters.Add("@address_id", model.address_id);
-                parameters.Add("@location_description", model.location_description);
-                parameters.Add("@main_staff_member_id", model.main_staff_member_id);
-                parameters.Add("@summary", model.summary);
-                parameters.Add("@created_by_user_id", model.created_by_user_id);
-                parameters.Add("@staff_json", ToJson(model.staff));
-                parameters.Add("@services_json", ToJson(model.service_ids?.Select(id => new { service_id = id }).ToList()));
 
-                var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_create", parameters, commandType: System.Data.CommandType.StoredProcedure);
+            var parameters = new DynamicParameters();
+            parameters.Add("@patient_id", model.patient_id);
+            parameters.Add("@event_type_id", model.event_type_id);
+            parameters.Add("@scheduled_start_at", model.scheduled_start_at);
+            parameters.Add("@scheduled_end_at", model.scheduled_end_at);
+            parameters.Add("@location_type_id", model.location_type_id);
+            parameters.Add("@location_id", model.location_id);
+            parameters.Add("@address_id", model.address_id);
+            parameters.Add("@location_description", model.location_description);
+            parameters.Add("@main_staff_member_id", model.main_staff_member_id);
+            parameters.Add("@summary", model.summary);
+            parameters.Add("@created_by_user_id", model.created_by_user_id);
+            parameters.Add("@staff_json", ToJson(model.staff));
+            parameters.Add("@services_json", ToJson(model.service_ids?.Select(id => new { service_id = id }).ToList()));
 
-                // La cita ya quedo guardada en este punto. Un fallo de correo no
-                // debe cambiar la respuesta (RF-06, flujo alterno "fallo de correo").
-                if (response != null && response.success)
-                    await EnviarNotificacionesCitaAsync(response.service_event_id, "creada");
+            var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_create", parameters);
 
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            // La cita ya quedo guardada en este punto. Un fallo de correo no
+            // debe cambiar la respuesta (RF-06, flujo alterno "fallo de correo").
+            if (response != null && response.success)
+                await EnviarNotificacionesCitaAsync(response.service_event_id, "creada");
+
+            return Ok(response);
         }
 
         [HttpPut("ActualizarCitaAPI")]
         public IActionResult ActualizarCitaAPI(CitaUpdateRequestModel model)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@service_event_id", model.service_event_id);
-                parameters.Add("@patient_id", model.patient_id);
-                parameters.Add("@event_type_id", model.event_type_id);
-                parameters.Add("@scheduled_start_at", model.scheduled_start_at);
-                parameters.Add("@scheduled_end_at", model.scheduled_end_at);
-                parameters.Add("@location_type_id", model.location_type_id);
-                parameters.Add("@location_id", model.location_id);
-                parameters.Add("@address_id", model.address_id);
-                parameters.Add("@location_description", model.location_description);
-                parameters.Add("@main_staff_member_id", model.main_staff_member_id);
-                parameters.Add("@summary", model.summary);
-                parameters.Add("@reason", model.reason);
-                parameters.Add("@changed_by_user_id", model.changed_by_user_id);
-                parameters.Add("@staff_json", ToJson(model.staff));
-                parameters.Add("@services_json", ToJson(model.service_ids?.Select(id => new { service_id = id }).ToList()));
 
-                var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_update", parameters, commandType: System.Data.CommandType.StoredProcedure);
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            var parameters = new DynamicParameters();
+            parameters.Add("@service_event_id", model.service_event_id);
+            parameters.Add("@patient_id", model.patient_id);
+            parameters.Add("@event_type_id", model.event_type_id);
+            parameters.Add("@scheduled_start_at", model.scheduled_start_at);
+            parameters.Add("@scheduled_end_at", model.scheduled_end_at);
+            parameters.Add("@location_type_id", model.location_type_id);
+            parameters.Add("@location_id", model.location_id);
+            parameters.Add("@address_id", model.address_id);
+            parameters.Add("@location_description", model.location_description);
+            parameters.Add("@main_staff_member_id", model.main_staff_member_id);
+            parameters.Add("@summary", model.summary);
+            parameters.Add("@reason", model.reason);
+            parameters.Add("@changed_by_user_id", model.changed_by_user_id);
+            parameters.Add("@staff_json", ToJson(model.staff));
+            parameters.Add("@services_json", ToJson(model.service_ids?.Select(id => new { service_id = id }).ToList()));
+
+            var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_update", parameters);
+            return Ok(response);
         }
 
         [HttpPut("ReprogramarCitaAPI")]
         public IActionResult ReprogramarCitaAPI(CitaRescheduleRequestModel model)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@service_event_id", model.service_event_id);
-                parameters.Add("@scheduled_start_at", model.scheduled_start_at);
-                parameters.Add("@scheduled_end_at", model.scheduled_end_at);
-                parameters.Add("@reason", model.reason);
-                parameters.Add("@changed_by_user_id", model.changed_by_user_id);
 
-                var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_reschedule", parameters, commandType: System.Data.CommandType.StoredProcedure);
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            var parameters = new DynamicParameters();
+            parameters.Add("@service_event_id", model.service_event_id);
+            parameters.Add("@scheduled_start_at", model.scheduled_start_at);
+            parameters.Add("@scheduled_end_at", model.scheduled_end_at);
+            parameters.Add("@reason", model.reason);
+            parameters.Add("@changed_by_user_id", model.changed_by_user_id);
+
+            var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_reschedule", parameters);
+            return Ok(response);
         }
 
         [HttpPut("CancelarCitaAPI")]
         public async Task<IActionResult> CancelarCitaAPI(CitaCancelRequestModel model)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@service_event_id", model.service_event_id);
-                parameters.Add("@reason", model.reason);
-                parameters.Add("@changed_by_user_id", model.changed_by_user_id);
 
-                var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_cancel", parameters, commandType: System.Data.CommandType.StoredProcedure);
+            var parameters = new DynamicParameters();
+            parameters.Add("@service_event_id", model.service_event_id);
+            parameters.Add("@reason", model.reason);
+            parameters.Add("@changed_by_user_id", model.changed_by_user_id);
 
-                if (response != null && response.success)
-                    await EnviarNotificacionesCitaAsync(response.service_event_id, "cancelada");
+            var response = context.QueryFirstOrDefault<CitaOperationResponseModel>("service_sp_orc_events_cancel", parameters);
 
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            if (response != null && response.success)
+                await EnviarNotificacionesCitaAsync(response.service_event_id, "cancelada");
+
+            return Ok(response);
         }
 
         [HttpGet("ListarCitasAPI")]
         public IActionResult ListarCitasAPI(DateTime? dateFrom, DateTime? dateTo, int? patientId, int? staffMemberId, int? statusId, int? eventTypeId)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@date_from", dateFrom?.Date);
-                parameters.Add("@date_to", dateTo?.Date);
-                parameters.Add("@patient_id", patientId);
-                parameters.Add("@staff_member_id", staffMemberId);
-                parameters.Add("@status_id", statusId);
-                parameters.Add("@event_type_id", eventTypeId);
 
-                var response = context.Query<CitaResponseModel>("service_sp_report_events", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            var parameters = new DynamicParameters();
+            parameters.Add("@date_from", dateFrom?.Date);
+            parameters.Add("@date_to", dateTo?.Date);
+            parameters.Add("@patient_id", patientId);
+            parameters.Add("@staff_member_id", staffMemberId);
+            parameters.Add("@status_id", statusId);
+            parameters.Add("@event_type_id", eventTypeId);
+
+            var response = context.Query<CitaResponseModel>("service_sp_report_events", parameters).ToList();
+            return Ok(response);
         }
 
         [HttpGet("DetalleCitaAPI/{id}")]
         public IActionResult DetalleCitaAPI(int id)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@service_event_id", id);
 
-                using var multi = context.QueryMultiple("service_sp_events_get_detail", parameters, commandType: System.Data.CommandType.StoredProcedure);
-                var cita = multi.Read<CitaDetailResponseModel>().FirstOrDefault();
-                var historial = multi.Read<CitaStatusHistoryResponseModel>().ToList();
+            var parameters = new DynamicParameters();
+            parameters.Add("@service_event_id", id);
 
-                if (cita == null)
-                    return NotFound("La cita indicada no existe.");
+            using var multi = context.QueryMultiple("service_sp_events_get_detail", parameters);
+            var cita = multi.Read<CitaDetailResponseModel>().FirstOrDefault();
+            var historial = multi.Read<CitaStatusHistoryResponseModel>().ToList();
 
-                return Ok(new CitaDetailFullResponseModel { cita = cita, historial = historial });
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            if (cita == null)
+                return NotFound("La cita indicada no existe.");
+
+            return Ok(new CitaDetailFullResponseModel { cita = cita, historial = historial });
         }
 
         [HttpGet("VerificarDisponibilidadAPI")]
         public IActionResult VerificarDisponibilidadAPI(int staffMemberId, DateTime scheduledStartAt, DateTime scheduledEndAt, int? excludeEventId)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@staff_member_id", staffMemberId);
-                parameters.Add("@scheduled_start_at", scheduledStartAt);
-                parameters.Add("@scheduled_end_at", scheduledEndAt);
-                parameters.Add("@exclude_event_id", excludeEventId);
 
-                using var multi = context.QueryMultiple("service_sp_events_validate_staff_availability", parameters, commandType: System.Data.CommandType.StoredProcedure);
-                var isAvailable = multi.ReadFirst<bool>();
-                var suggestedSlots = isAvailable ? new List<CitaSuggestedSlotModel>() : multi.Read<CitaSuggestedSlotModel>().ToList();
+            var parameters = new DynamicParameters();
+            parameters.Add("@staff_member_id", staffMemberId);
+            parameters.Add("@scheduled_start_at", scheduledStartAt);
+            parameters.Add("@scheduled_end_at", scheduledEndAt);
+            parameters.Add("@exclude_event_id", excludeEventId);
 
-                return Ok(new CitaAvailabilityResponseModel { is_available = isAvailable, suggested_slots = suggestedSlots });
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            using var multi = context.QueryMultiple("service_sp_events_validate_staff_availability", parameters);
+            var isAvailable = multi.ReadFirst<bool>();
+            var suggestedSlots = isAvailable ? new List<CitaSuggestedSlotModel>() : multi.Read<CitaSuggestedSlotModel>().ToList();
+
+            return Ok(new CitaAvailabilityResponseModel { is_available = isAvailable, suggested_slots = suggestedSlots });
         }
 
         [HttpGet("BuscarPacientesAPI")]
         public IActionResult BuscarPacientesAPI(string? search)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@search", search);
 
-                var response = context.Query<PatientSearchResponseModel>("patient_sp_patients_search", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            var parameters = new DynamicParameters();
+            parameters.Add("@search", search);
+
+            var response = context.Query<PatientSearchResponseModel>("patient_sp_patients_search", parameters).ToList();
+            return Ok(response);
         }
 
         [HttpGet("BuscarColaboradoresAPI")]
         public IActionResult BuscarColaboradoresAPI(string? search, int? staffRoleId)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@search", search);
-                parameters.Add("@staff_role_id", staffRoleId);
 
-                var response = context.Query<StaffSearchResponseModel>("staff_sp_members_search", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            var parameters = new DynamicParameters();
+            parameters.Add("@search", search);
+            parameters.Add("@staff_role_id", staffRoleId);
+
+            var response = context.Query<StaffSearchResponseModel>("staff_sp_members_search", parameters).ToList();
+            return Ok(response);
         }
 
         [HttpGet("CatalogoAPI/{catalogName}")]
         public IActionResult CatalogoAPI(string catalogName)
         {
             using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@catalog_name", catalogName);
 
-                var response = context.Query<CatalogItemResponseModel>("config_sp_catalog_items_list", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
-                return Ok(response);
-            }
-            catch (SqlException ex)
-            {
-                return HandleSqlException(ex);
-            }
-            catch (Exception ex)
-            {
-                return HandleUnexpectedException(ex);
-            }
+            var parameters = new DynamicParameters();
+            parameters.Add("@catalog_name", catalogName);
+
+            var response = context.Query<CatalogItemResponseModel>("config_sp_catalog_items_list", parameters).ToList();
+            return Ok(response);
         }
 
         #region Notificaciones (RF-06)
 
-        // Envia (o intenta enviar) los correos de una cita al paciente y al
-        // colaborador, y deja registro en notification_tbl_logs de cada
-        // intento (enviado o fallido). Este metodo nunca deja que una falla
-        // de correo se propague hacia el endpoint que lo llama: la cita ya
-        // esta guardada en BD antes de que se ejecute esto.
+        //Envia (o intenta enviar) los correos de una cita al paciente y al
+        //colaborador, y deja registro en notification_tbl_logs de cada intento (enviado o fallido).
         private async Task EnviarNotificacionesCitaAsync(int serviceEventId, string evento)
         {
             try
             {
                 using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
 
-                // OJO: el SP devuelve 2 result sets (cita + historial), y aqui
-                // solo nos interesa el primero. Cerramos "multi" apenas lo
-                // leemos (bloque propio) para liberar el DataReader antes de
-                // seguir usando "context" para las consultas de catalogos y
-                // el INSERT del log; si no, revienta con
-                // "Ya hay un DataReader abierto asociado a Connection".
                 CitaDetailResponseModel? cita;
                 var detailParams = new DynamicParameters();
                 detailParams.Add("@service_event_id", serviceEventId);
-                using (var multi = context.QueryMultiple("service_sp_events_get_detail", detailParams, commandType: System.Data.CommandType.StoredProcedure))
+                using (var multi = context.QueryMultiple("service_sp_events_get_detail", detailParams))
                 {
                     cita = multi.Read<CitaDetailResponseModel>().FirstOrDefault();
                 }
@@ -410,17 +273,15 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             }
             catch (Exception ex)
             {
-                // La cita ya se guardo antes de llegar aqui (RF-06, flujo
-                // alterno "fallo de correo"): un error aqui no debe tumbar
-                // la respuesta del endpoint que creo o cancelo la cita.
-                // Se deja visible en consola para poder diagnosticar fallas
-                // de correo/DB sin afectar al usuario.
+                //La cita ya se guardo antes de llegar aqui ("fallo de correo"): un error aqui no debe tumbar
+                //la respuesta del endpoint que creo o cancelo la cita.
+                //Se deja visible en consola para poder diagnosticar fallas
+                //de correo/DB sin afectar al usuario.
                 Console.WriteLine("[EnviarNotificacionesCitaAsync] ERROR: " + ex.Message);
             }
         }
 
-        // Envia un correo puntual y registra el resultado (enviado o fallido)
-        // en notification_tbl_logs via notification_sp_logs_create.
+        //Envia un correo puntual y registra el resultado (enviado o fallido) en notification_tbl_logs via notification_sp_logs_create.
         private async Task EnviarYRegistrarAsync(SqlConnection context, string destinatario, string asunto, string cuerpoHtml,
             int? notificationTypeId, int? statusSentId, int? statusFailedId, int? patientId, int serviceEventId)
         {
@@ -449,13 +310,13 @@ namespace PAW_Proyecto_KronosAPI.Controllers
 
             try
             {
-                context.Execute("notification_sp_logs_create", logParams, commandType: System.Data.CommandType.StoredProcedure);
+                context.Execute("notification_sp_logs_create", logParams);
             }
             catch (Exception ex)
             {
-                // Si ni siquiera se puede dejar el log, no interrumpimos el
-                // flujo (el correo, o el intento, ya se proceso). Se deja
-                // visible en consola para no perder de vista el problema.
+                //Si ni siquiera se puede dejar el log, no interrumpimos el
+                //flujo (el correo, o el intento, ya se proceso). Se deja
+                //visible en consola para no perder de vista el problema.
                 Console.WriteLine("[EnviarYRegistrarAsync] ERROR al insertar en notification_tbl_logs: " + ex.Message);
             }
         }

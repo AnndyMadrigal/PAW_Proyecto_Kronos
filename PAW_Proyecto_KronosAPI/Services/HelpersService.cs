@@ -2,13 +2,14 @@
 using MailKit.Security;
 using MimeKit;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace PAW_Proyecto_KronosAPI.Services
 {
-    public class HelpersService(IConfiguration _config) : IHelpersService
+    public class HelpersService(IConfiguration _config, IHttpContextAccessor _httpContext) : IHelpersService
     {
 
-        public string GenerateToken(int id)
+        public string GenerateToken(int id, string tokenId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = System.Text.Encoding.ASCII.GetBytes(_config["Jwt:SecretKey"]!);
@@ -16,7 +17,8 @@ namespace PAW_Proyecto_KronosAPI.Services
             {
                 Subject = new System.Security.Claims.ClaimsIdentity(new[]
                 {
-                    new System.Security.Claims.Claim("Consecutivo", id.ToString())
+                    new System.Security.Claims.Claim("Consecutivo", id.ToString()),
+                    new System.Security.Claims.Claim(JwtRegisteredClaimNames.Jti, tokenId)
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(30),
                 SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(
@@ -30,6 +32,12 @@ namespace PAW_Proyecto_KronosAPI.Services
         public string GenerateRandomPassword()
         {
             return Guid.NewGuid().ToString("N")[..10];
+        }
+
+        public int ObtenerConsecutivoToken()
+        {
+            var value = _httpContext.HttpContext?.User.FindFirstValue("Consecutivo");
+            return int.TryParse(value, out var id) ? id : 0;
         }
 
         public async Task SendEmail(string to, string subject, string body)

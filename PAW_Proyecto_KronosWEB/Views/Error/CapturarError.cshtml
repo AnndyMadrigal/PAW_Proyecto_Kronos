@@ -1,0 +1,20 @@
+@{
+    var haySesionActiva = Context.Session.GetString("Authenticated") == "1";
+    Layout = haySesionActiva ? "_Layout" : "_LayoutExterno";
+    ViewData["Title"] = "Ha ocurrido un error";
+}
+
+@if (haySesionActiva)
+{
+    <div class="flex min-h-[70vh] items-center justify-center p-6">
+        <partial name="_ErrorCard" />
+    </div>
+}
+else
+{
+    <div class="flex flex-col flex-1 w-full lg:w-1/2">
+        <div class="flex flex-1 items-center justify-center w-full p-6">
+            <partial name="_ErrorCard" />
+        </div>
+    </div>
+}
