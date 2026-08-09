@@ -9,7 +9,7 @@ builder.Services.AddSession();
 var app = builder.Build();
 
 
-app.UseExceptionHandler("/Home/Error");
+app.UseExceptionHandler("/Error/CapturarError");
 
 app.UseSession();
 

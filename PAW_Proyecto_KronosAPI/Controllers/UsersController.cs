@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PAW_Proyecto_KronosAPI.Models;
 using PAW_Proyecto_KronosAPI.Services;
-using System.Data;
 
 namespace PAW_Proyecto_KronosAPI.Controllers
 {
@@ -19,8 +18,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             await using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
             var users = await context.QueryAsync<UserManagementListItemResponseModel>(
                 "access_sp_users_search",
-                new { search },
-                commandType: CommandType.StoredProcedure);
+                new { search });
             return Ok(users);
         }
 
@@ -28,9 +26,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
         public async Task<IActionResult> RolesAPI()
         {
             await using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            var roles = await context.QueryAsync<UserRoleOptionResponseModel>(
-                "access_sp_roles_list",
-                commandType: CommandType.StoredProcedure);
+            var roles = await context.QueryAsync<UserRoleOptionResponseModel>("access_sp_roles_list");
             return Ok(roles);
         }
 
@@ -40,8 +36,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             await using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
             var user = await context.QueryFirstOrDefaultAsync<UserManagementListItemResponseModel>(
                 "access_sp_users_get_by_id",
-                new { user_id = id },
-                commandType: CommandType.StoredProcedure);
+                new { user_id = id });
             return user is null ? NotFound("El usuario indicado no existe.") : Ok(user);
         }
 
@@ -58,8 +53,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             await using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
             var response = await context.QueryFirstOrDefaultAsync<UserManagementCreateResponseModel>(
                 "access_sp_users_create_by_admin",
-                new { administrator_user_id = administratorUserId, model.username, model.email, password = temporaryPasswordHash, model.full_name, model.phone, model.role_id },
-                commandType: CommandType.StoredProcedure);
+                new { administrator_user_id = administratorUserId, model.username, model.email, password = temporaryPasswordHash, model.full_name, model.phone, model.role_id });
 
             if (response is null)
                 return BadRequest("No se obtuvo respuesta al crear el usuario.");
@@ -103,8 +97,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                     model.role_id,
                     model.is_active,
                     model.confirm_pending_appointments
-                },
-                commandType: CommandType.StoredProcedure);
+                });
 
             if (response is null)
                 return BadRequest("No se obtuvo respuesta al actualizar el perfil.");

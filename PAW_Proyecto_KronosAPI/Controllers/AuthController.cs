@@ -29,7 +29,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 {
                     var tokenId = Guid.NewGuid().ToString("N");
                     response.Token = _helpers.GenerateToken(response.id, tokenId);
-                    context.Execute("access_sp_auth_session_create", new { user_id = response.id, token_id = tokenId }, commandType: System.Data.CommandType.StoredProcedure);
+                    context.Execute("access_sp_auth_session_create", new { user_id = response.id, token_id = tokenId });
                     return Ok(response);
                 }
                 else

@@ -53,8 +53,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 await using var connection = new SqlConnection(builder.Configuration["ConnectionStrings:DefaultConnection"]);
                 var validation = await connection.QueryFirstOrDefaultAsync<TokenValidationResponseModel>(
                     "access_sp_auth_validate_token",
-                    new { user_id = userId, token_id = tokenId },
-                    commandType: System.Data.CommandType.StoredProcedure);
+                    new { user_id = userId, token_id = tokenId });
                 if (validation?.is_valid != true)
                     context.Fail("La sesiÃ³n ya no estÃ¡ vigente.");
             }
@@ -63,6 +62,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+// Manejador global de excepciones: cualquier excepcion no controlada por un
+// controller termina aqui, se traduce (errores de negocio) o se registra en
+// system_tbl_error_logs (errores de sistema). Ver ErrorController.
+app.UseExceptionHandler("/api/Error/RegistrarErrorAPI");
 
 // [INVENTARIO] CORS debe ejecutarse antes que HTTPS redirect
 app.UseCors("AllowWeb");
