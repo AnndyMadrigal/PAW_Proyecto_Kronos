@@ -63,11 +63,12 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             }
         }
 
+        // CORREGIDO: ahora usa Dapper + SP (config_sp_settings_get_medical_attachments_root)
+        // en vez de SQL crudo, igual que el resto del controller.
         private string ObtenerRutaAdjuntos(SqlConnection context)
         {
             var ruta = context.QueryFirstOrDefault<string>(
-                @"SELECT setting_value FROM config_tbl_settings
-                  WHERE setting_type = N'files' AND setting_name = N'medical_attachments_root' AND deleted = 0");
+                "config_sp_settings_get_medical_attachments_root", commandType: System.Data.CommandType.StoredProcedure);
             return ruta ?? "/uploads/medical-records";
         }
 
@@ -234,6 +235,28 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
+        // Alimenta el dropdown "Colaborador que firma" en Notas clinicas.
+        // Llama al mismo SP que usa RF-06 (staff_sp_members_search),
+        // pero expuesto aqui, dentro de Expedientes, para no depender de
+        // CitasController.
+        [HttpGet("BuscarColaboradoresAPI")]
+        public IActionResult BuscarColaboradoresAPI(string? search)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@search", search);
+                parameters.Add("@staff_role_id", (int?)null);
+
+                var response = context.Query<StaffOptionResponseModel>(
+                    "staff_sp_members_search", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
+                return Ok(response);
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
         // RF-05 flujo alterno "Paciente no encontrado: se ofrece crearlo".
         [HttpPost("RegistrarPacienteAPI")]
         public IActionResult RegistrarPacienteAPI(PatientRegisterRequestModel model)
@@ -290,6 +313,41 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             {
                 var response = context.Query<DocumentTypeResponseModel>(
                     "config_sp_document_types_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
+                return Ok(response);
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        // Alimenta el dropdown "Condición médica" en la pestaña Diagnóstico.
+        // medical_tbl_conditions es tabla aparte del catálogo general, por
+        // eso necesita su propio SP (medical_sp_conditions_list).
+        // Reutiliza DocumentTypeResponseModel porque tiene la misma forma
+        // (id, name, description) que devuelve el SP.
+        [HttpGet("CondicionesMedicasAPI")]
+        public IActionResult CondicionesMedicasAPI()
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                var response = context.Query<DocumentTypeResponseModel>(
+                    "medical_sp_conditions_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
+                return Ok(response);
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        // Alimenta el dropdown "Medicamento" en la pestaña Tratamientos.
+        // Mismo patron que CondicionesMedicasAPI.
+        [HttpGet("MedicamentosAPI")]
+        public IActionResult MedicamentosAPI()
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                var response = context.Query<DocumentTypeResponseModel>(
+                    "medical_sp_medications_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }

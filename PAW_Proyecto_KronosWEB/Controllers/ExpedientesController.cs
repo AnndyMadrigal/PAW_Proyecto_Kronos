@@ -36,6 +36,22 @@ namespace PAW_Proyecto_Kronos.Controllers
             return await response.Content.ReadFromJsonAsync<List<DocumentTypeOptionModel>>() ?? new();
         }
 
+        // NUEVO: alimenta el dropdown "Condición médica" en Diagnóstico.
+        private async Task<List<DocumentTypeOptionModel>> ObtenerCondicionesMedicasAsync(HttpClient client)
+        {
+            var response = await client.GetAsync("Expedientes/CondicionesMedicasAPI");
+            if (response.StatusCode != HttpStatusCode.OK) return new List<DocumentTypeOptionModel>();
+            return await response.Content.ReadFromJsonAsync<List<DocumentTypeOptionModel>>() ?? new();
+        }
+
+        // NUEVO: alimenta el dropdown "Medicamento" en Tratamientos.
+        private async Task<List<DocumentTypeOptionModel>> ObtenerMedicamentosAsync(HttpClient client)
+        {
+            var response = await client.GetAsync("Expedientes/MedicamentosAPI");
+            if (response.StatusCode != HttpStatusCode.OK) return new List<DocumentTypeOptionModel>();
+            return await response.Content.ReadFromJsonAsync<List<DocumentTypeOptionModel>>() ?? new();
+        }
+
         private async Task<List<PatientOptionModel>> ObtenerPacientesAsync(HttpClient client, string? search = null)
         {
             var url = "Expedientes/BuscarPacientesAPI";
@@ -45,11 +61,13 @@ namespace PAW_Proyecto_Kronos.Controllers
             return await response.Content.ReadFromJsonAsync<List<PatientOptionModel>>() ?? new();
         }
 
-        // Reutiliza el endpoint de colaboradores de Citas: es un catalogo
-        // general de personal, no algo especifico de RF-06.
+        // Endpoint propio de Expedientes (ver ExpedientesController de la API,
+        // metodo BuscarColaboradoresAPI). Antes reutilizaba el de Citas; se
+        // corrigio para que el modulo de expedientes no dependa de otro
+        // controller que no es parte de este RF.
         private async Task<List<StaffOptionModel>> ObtenerColaboradoresAsync(HttpClient client)
         {
-            var response = await client.GetAsync("Citas/BuscarColaboradoresAPI");
+            var response = await client.GetAsync("Expedientes/BuscarColaboradoresAPI");
             if (response.StatusCode != HttpStatusCode.OK) return new List<StaffOptionModel>();
             return await response.Content.ReadFromJsonAsync<List<StaffOptionModel>>() ?? new();
         }
@@ -210,6 +228,8 @@ namespace PAW_Proyecto_Kronos.Controllers
                 model.TiposNota = await ObtenerCatalogoAsync(client, "medical_note_type");
                 model.EstadosCondicion = await ObtenerCatalogoAsync(client, "condition_status");
                 model.TiposDocumento = await ObtenerTiposDocumentoAsync(client);
+                model.CondicionesMedicas = await ObtenerCondicionesMedicasAsync(client);
+                model.Medicamentos = await ObtenerMedicamentosAsync(client);
                 ViewBag.Colaboradores = await ObtenerColaboradoresAsync(client);
 
                 return View(model);

@@ -88,6 +88,8 @@
         public List<CatalogOptionModel> TiposNota { get; set; } = new();
         public List<CatalogOptionModel> EstadosCondicion { get; set; } = new();
         public List<DocumentTypeOptionModel> TiposDocumento { get; set; } = new();
+        public List<DocumentTypeOptionModel> CondicionesMedicas { get; set; } = new();
+        public List<DocumentTypeOptionModel> Medicamentos { get; set; } = new();
 
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
