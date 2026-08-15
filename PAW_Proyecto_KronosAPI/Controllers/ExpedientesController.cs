@@ -1,7 +1,8 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PAW_Proyecto_KronosAPI.Models;
+using PAW_Proyecto_KronosAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 
 namespace PAW_Proyecto_KronosAPI.Controllers
@@ -14,6 +15,8 @@ namespace PAW_Proyecto_KronosAPI.Controllers
     [ApiController]
     public class ExpedientesController(IConfiguration _config) : Controller
     {
+        #region Manejo de Errores y Utilidades
+
         // Numeros de error personalizados que lanzan los SPs de expedientes
         // (ver 14_rf05_expedientes_sp.sql), traducidos a una respuesta HTTP clara.
         private IActionResult HandleSqlException(SqlException ex)
@@ -54,23 +57,26 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@source", "[ExpedientesController] " + source);
                 parameters.Add("@message", message);
                 parameters.Add("@detail", detail);
-                context.Execute("system_sp_error_logs_create", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                context.Execute("system_sp_error_logs_create", parameters);
             }
             catch (Exception logEx)
             {
-                // Si ni siquiera se puede dejar el log, no interrumpimos el flujo.
+                // Si no se puede registrar en la base de datos, dejamos constancia en consola sin interrumpir el flujo.
                 Console.WriteLine("[ExpedientesController] ERROR al insertar en system_tbl_error_logs: " + logEx.Message);
             }
         }
 
-        // CORREGIDO: ahora usa Dapper + SP (config_sp_settings_get_medical_attachments_root)
-        // en vez de SQL crudo, igual que el resto del controller.
+        // Obtiene la ruta física de adjuntos vía SP o usa valor por defecto
         private string ObtenerRutaAdjuntos(SqlConnection context)
         {
             var ruta = context.QueryFirstOrDefault<string>(
-                "config_sp_settings_get_medical_attachments_root", commandType: System.Data.CommandType.StoredProcedure);
+                "config_sp_settings_get_medical_attachments_root");
             return ruta ?? "/uploads/medical-records";
         }
+
+        #endregion
+
+        #region Apertura y Estado de Expediente
 
         [HttpPost("AbrirExpedienteAPI")]
         public IActionResult AbrirExpedienteAPI(ExpedienteOpenRequestModel model)
@@ -83,7 +89,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@user_id", model.user_id);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_records_open", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_records_open", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -102,12 +108,16 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@user_id", model.user_id);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_records_update_status", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_records_update_status", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
+
+        #endregion
+
+        #region Notas Clínicas
 
         [HttpPost("CrearNotaAPI")]
         public IActionResult CrearNotaAPI(ExpedienteNoteCreateRequestModel model)
@@ -124,12 +134,16 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@user_id", model.user_id);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_record_notes_create", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_record_notes_create", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
+
+        #endregion
+
+        #region Diagnósticos (Condiciones Médicas)
 
         [HttpPost("GuardarDiagnosticoAPI")]
         public IActionResult GuardarDiagnosticoAPI(ExpedienteConditionUpsertRequestModel model)
@@ -147,12 +161,16 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@user_id", model.user_id);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_patient_conditions_upsert", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_patient_conditions_upsert", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
+
+        #endregion
+
+        #region Tratamientos (Medicamentos)
 
         [HttpPost("GuardarTratamientoAPI")]
         public IActionResult GuardarTratamientoAPI(ExpedienteMedicationUpsertRequestModel model)
@@ -172,12 +190,16 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@user_id", model.user_id);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_patient_medications_upsert", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_patient_medications_upsert", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
+
+        #endregion
+
+        #region Detalle de Expediente
 
         [HttpGet("DetalleExpedienteAPI")]
         public IActionResult DetalleExpedienteAPI(int? medicalRecordId, int? patientId, int accessedByUserId, int pageNumber = 1, int pageSize = 10)
@@ -195,7 +217,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@page_number", pageNumber);
                 parameters.Add("@page_size", pageSize);
 
-                using var multi = context.QueryMultiple("medical_sp_orc_records_get_detail", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                using var multi = context.QueryMultiple("medical_sp_orc_records_get_detail", parameters);
                 var expediente = multi.Read<ExpedienteHeaderResponseModel>().FirstOrDefault();
                 var notas = multi.Read<ExpedienteNoteResponseModel>().ToList();
                 var diagnosticos = multi.Read<ExpedienteConditionResponseModel>().ToList();
@@ -218,6 +240,10 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
+        #endregion
+
+        #region Búsqueda y Registro de Pacientes
+
         [HttpGet("BuscarPacientesAPI")]
         public IActionResult BuscarPacientesAPI(string? search)
         {
@@ -228,29 +254,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@search", search);
 
                 var response = context.Query<PatientSearchResponseModel>(
-                    "patient_sp_patients_search", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
-                return Ok(response);
-            }
-            catch (SqlException ex) { return HandleSqlException(ex); }
-            catch (Exception ex) { return HandleUnexpectedException(ex); }
-        }
-
-        // Alimenta el dropdown "Colaborador que firma" en Notas clinicas.
-        // Llama al mismo SP que usa RF-06 (staff_sp_members_search),
-        // pero expuesto aqui, dentro de Expedientes, para no depender de
-        // CitasController.
-        [HttpGet("BuscarColaboradoresAPI")]
-        public IActionResult BuscarColaboradoresAPI(string? search)
-        {
-            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
-            try
-            {
-                var parameters = new DynamicParameters();
-                parameters.Add("@search", search);
-                parameters.Add("@staff_role_id", (int?)null);
-
-                var response = context.Query<StaffOptionResponseModel>(
-                    "staff_sp_members_search", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
+                    "patient_sp_patients_search", parameters).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -278,7 +282,30 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@created_by_user_id", model.created_by_user_id);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "patient_sp_orc_patients_register", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "patient_sp_orc_patients_register", parameters);
+                return Ok(response);
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        #endregion
+
+        #region Catálogos y Búsquedas
+
+        // Alimenta el dropdown "Colaborador que firma" en Notas clínicas.
+        [HttpGet("BuscarColaboradoresAPI")]
+        public IActionResult BuscarColaboradoresAPI(string? search)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@search", search);
+                parameters.Add("@staff_role_id", (int?)null);
+
+                var response = context.Query<StaffOptionResponseModel>(
+                    "staff_sp_members_search", parameters).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -295,16 +322,14 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@catalog_name", catalogName);
 
                 var response = context.Query<CatalogItemResponseModel>(
-                    "config_sp_catalog_items_list", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
+                    "config_sp_catalog_items_list", parameters).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
-        // Tipos de documento para adjuntos: config_tbl_document_types es tabla
-        // aparte de config_tbl_catalog_items, por eso necesita su propio SP
-        // (config_sp_document_types_list) y su propio endpoint, distinto de CatalogoAPI.
+        // Tipos de documento para adjuntos
         [HttpGet("TiposDocumentoAPI")]
         public IActionResult TiposDocumentoAPI()
         {
@@ -312,18 +337,14 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             try
             {
                 var response = context.Query<DocumentTypeResponseModel>(
-                    "config_sp_document_types_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
+                    "config_sp_document_types_list").ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
-        // Alimenta el dropdown "Condición médica" en la pestaña Diagnóstico.
-        // medical_tbl_conditions es tabla aparte del catálogo general, por
-        // eso necesita su propio SP (medical_sp_conditions_list).
-        // Reutiliza DocumentTypeResponseModel porque tiene la misma forma
-        // (id, name, description) que devuelve el SP.
+        // Alimenta el dropdown "Condición médica" en Diagnóstico
         [HttpGet("CondicionesMedicasAPI")]
         public IActionResult CondicionesMedicasAPI()
         {
@@ -331,15 +352,14 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             try
             {
                 var response = context.Query<DocumentTypeResponseModel>(
-                    "medical_sp_conditions_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
+                    "medical_sp_conditions_list").ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
-        // Alimenta el dropdown "Medicamento" en la pestaña Tratamientos.
-        // Mismo patron que CondicionesMedicasAPI.
+        // Alimenta el dropdown "Medicamento" en Tratamientos
         [HttpGet("MedicamentosAPI")]
         public IActionResult MedicamentosAPI()
         {
@@ -347,14 +367,16 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             try
             {
                 var response = context.Query<DocumentTypeResponseModel>(
-                    "medical_sp_medications_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
+                    "medical_sp_medications_list").ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
             catch (Exception ex) { return HandleUnexpectedException(ex); }
         }
 
-        #region Adjuntos (archivo fisico + registro en BD)
+        #endregion
+
+        #region Adjuntos (archivo físico y registro en BD)
 
         [HttpPost("SubirAdjuntoAPI")]
         public async Task<IActionResult> SubirAdjuntoAPI([FromForm] int medicalRecordId, [FromForm] int patientId,
@@ -389,7 +411,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@uploaded_by_user_id", uploadedByUserId);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_record_attachments_create", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_record_attachments_create", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -409,7 +431,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@device_info", Request.Headers.UserAgent.ToString());
 
                 var adjunto = context.QueryFirstOrDefault<ExpedienteAttachmentDownloadModel>(
-                    "medical_sp_record_attachments_download", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_record_attachments_download", parameters);
 
                 if (adjunto == null)
                     return NotFound("El adjunto indicado no existe.");
@@ -436,7 +458,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@user_id", userId);
 
                 var response = context.QueryFirstOrDefault<ExpedienteOperationResponseModel>(
-                    "medical_sp_record_attachments_delete", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                    "medical_sp_record_attachments_delete", parameters);
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
