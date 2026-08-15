@@ -1,0 +1,232 @@
+<!-- [INVENTARIO] Nueva página para ver el inventario completo
+     Nota: Para revertir, eliminar completamente el archivo Views/Home/Inventory.cshtml
+           y eliminar la acción Inventory() en HomeController.cs -->
+@inject IConfiguration Configuration
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Inventario";
+}
+
+<div class="p-6">
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+                Inventario de insumos
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Listado completo de todos los productos disponibles en el inventario.
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row">
+            <input type="text" id="searchInput" placeholder="Buscar producto..." 
+                   class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 shadow-theme-xs focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500">
+
+            <a href="#"
+               class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
+                Nuevo producto
+            </a>
+        </div>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Producto</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Descripción</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Stock mínimo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Estado</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody id="inventoryTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                    <tr>
+                        <td colspan="5" class="px-4 py-8">
+                            <div class="flex items-center justify-center">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Cargando inventario...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-6 flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+            Mostrando <span id="itemCount">0</span> de <span id="totalCount">0</span> productos
+        </p>
+        <div class="flex gap-2">
+            <button onclick="previousPage()" 
+                    class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                Anterior
+            </button>
+            <button onclick="nextPage()" 
+                    class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
+                Siguiente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- [INVENTARIO] Script para cargar y paginar el inventario completo -->
+<script>
+    let allItems = [];
+    let currentPage = 1;
+    const itemsPerPage = 20;
+    let filteredItems = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadInventory();
+
+        document.getElementById('searchInput').addEventListener('input', function (e) {
+            filterInventory(e.target.value);
+        });
+    });
+
+    // [INVENTARIO] Obtener todos los items de la API
+    async function loadInventory() {
+        try {
+            // Obtener el token de la sesión del servidor
+            const token = '@Context.Session.GetString("Token")';
+            const apiUrl = '@Configuration["Valores:UrlApi"]' + 'inventory/GetInventoryItems';
+
+            if (!token) {
+                throw new Error('No hay sesión activa. Por favor, inicia sesión.');
+            }
+
+            console.log('Token:', token.substring(0, 20) + '...');
+            console.log('API URL:', apiUrl);
+
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                throw new Error(`Error ${response.status}: ${errorText}`);
+            }
+
+            const items = await response.json();
+            console.log('Items recibidos:', items);
+            allItems = items;
+            filteredItems = [...allItems];
+            currentPage = 1;
+            displayInventory();
+        } catch (error) {
+            console.error('Error completo:', error);
+            document.getElementById('inventoryTableBody').innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8">
+                        <div class="flex items-center justify-center rounded-xl border-2 border-dashed border-red-300 p-8 dark:border-red-600">
+                            <div class="text-center">
+                                <p class="text-sm text-red-500 dark:text-red-400 font-semibold">Error al cargar el inventario</p>
+                                <p class="text-xs text-red-400 dark:text-red-500 mt-2">${error.message}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Abre la consola del navegador (F12) para más detalles</p>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // [INVENTARIO] Filtrar items por búsqueda
+    function filterInventory(searchTerm) {
+        if (!searchTerm) {
+            filteredItems = [...allItems];
+        } else {
+            filteredItems = allItems.filter(item =>
+                (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+        }
+        currentPage = 1;
+        displayInventory();
+    }
+
+    // [INVENTARIO] Mostrar tabla paginada (20 items por página)
+    function displayInventory() {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+        const container = document.getElementById('inventoryTableBody');
+
+        if (!paginatedItems || paginatedItems.length === 0) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8">
+                        <div class="flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-8 dark:border-gray-600">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">No hay productos disponibles</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            document.getElementById('itemCount').textContent = '0';
+            document.getElementById('totalCount').textContent = filteredItems.length;
+            return;
+        }
+
+        container.innerHTML = paginatedItems.map(item => `
+            <tr>
+                <td class="px-4 py-4 text-sm font-medium text-gray-800 dark:text-white/90">
+                    ${item.name || 'Sin nombre'}
+                </td>
+                <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                    ${item.description || 'Sin descripción'}
+                </td>
+                <td class="px-4 py-4 text-sm font-semibold text-brand-600 dark:text-brand-400">
+                    ${item.minimum_stock || '0'}
+                </td>
+                <td class="px-4 py-4">
+                    <span class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600 dark:bg-green-500/10">
+                        Disponible
+                    </span>
+                </td>
+                <td class="px-4 py-4">
+                    <div class="flex gap-2">
+                        <a href="#" class="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400">Editar</a>
+                        <a href="#" class="text-xs text-red-600 hover:text-red-700 dark:text-red-400">Eliminar</a>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        const totalShowing = Math.min(endIndex, filteredItems.length);
+        document.getElementById('itemCount').textContent = totalShowing;
+        document.getElementById('totalCount').textContent = filteredItems.length;
+    }
+
+    // [INVENTARIO] Navegación de paginación
+    function nextPage() {
+        const maxPages = Math.ceil(filteredItems.length / itemsPerPage);
+        if (currentPage < maxPages) {
+            currentPage++;
+            displayInventory();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function previousPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            displayInventory();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+</script>

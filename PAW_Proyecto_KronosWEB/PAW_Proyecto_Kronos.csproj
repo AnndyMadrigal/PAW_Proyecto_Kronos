@@ -11,7 +11,8 @@
 	<ItemGroup>
 	  <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
 	</ItemGroup>
-	<Target Name="Tailwind" BeforeTargets="Build">
+	<!-- Comentado temporalmente: npm run build:css falla sin npm -->
+	<!-- <Target Name="Tailwind" BeforeTargets="Build">
 		<Exec Command="npm run build:css" />
-	</Target>
+	</Target> -->
 </Project>

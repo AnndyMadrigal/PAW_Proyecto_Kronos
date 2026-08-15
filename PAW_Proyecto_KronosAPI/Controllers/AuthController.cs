@@ -27,7 +27,9 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 var response = context.QueryFirstOrDefault<UserResponseModel>("spLoginUser", parameters);
                 if (response != null && BCrypt.Net.BCrypt.Verify(model.password, response.password))
                 {
-                    response.Token = _helpers.GenerateToken(response.id);
+                    var tokenId = Guid.NewGuid().ToString("N");
+                    response.Token = _helpers.GenerateToken(response.id, tokenId);
+                    context.Execute("access_sp_auth_session_create", new { user_id = response.id, token_id = tokenId });
                     return Ok(response);
                 }
                 else
