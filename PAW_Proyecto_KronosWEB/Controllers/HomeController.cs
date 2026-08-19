@@ -14,12 +14,12 @@ namespace PAW_Proyecto_Kronos.Controllers
             return View();
         }
 
-        // [INVENTARIO] Nueva acción para mostrar página completa de inventario
+        // Redirección para retrocompatibilidad
         [ActiveSession]
         [HttpGet]
         public IActionResult Inventory()
         {
-            return View();
+            return RedirectToAction("Index", "Inventory");
         }
 
     }

@@ -26,6 +26,22 @@ SET NOCOUNT ON;
 USE Kronos;
 GO
 
+
+INSERT INTO staff_tbl_members
+    (staff_role_id, first_name, last_name, identification_number, phone, email, is_active, deleted, created_at)
+SELECT r.id, N'Ana', N'Rodríguez', N'1-1111-1111', N'8888-1111', N'ana.rodriguez@kronos.local', 1, 0, SYSDATETIME()
+FROM staff_tbl_roles r WHERE r.name = N'Médico'
+
+UNION ALL
+
+SELECT r.id, N'Carlos', N'Jiménez', N'1-2222-2222', N'8888-2222', N'carlos.jimenez@kronos.local', 1, 0, SYSDATETIME()
+FROM staff_tbl_roles r WHERE r.name = N'Enfermería'
+
+UNION ALL
+
+SELECT r.id, N'Laura', N'Vargas', N'1-3333-3333', N'8888-3333', N'laura.vargas@kronos.local', 1, 0, SYSDATETIME()
+FROM staff_tbl_roles r WHERE r.name = N'Administrativo';
+
 -------------------------------------------------------------------------------
 -- 1. Apertura de expediente
 -------------------------------------------------------------------------------
