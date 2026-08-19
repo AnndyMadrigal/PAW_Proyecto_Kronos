@@ -153,7 +153,20 @@ $(document).ready(function () {
                     .addClass("border-gray-300 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/20");
             },
             submitHandler: function (form) {
-                form.submit();
+                Swal.fire({
+                    title: '¿Confirmar creación?',
+                    text: '¿Deseas registrar este producto en el inventario?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, crear',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#4f46e5',
+                    cancelButtonColor: '#6b7280'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
             }
         });
     }
@@ -226,7 +239,20 @@ $(document).ready(function () {
                     .addClass("border-gray-300 dark:border-gray-700 focus:border-brand-500 focus:ring-brand-500/20");
             },
             submitHandler: function (form) {
-                form.submit();
+                Swal.fire({
+                    title: '¿Guardar cambios?',
+                    text: '¿Deseas actualizar la información de este producto?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, guardar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#4f46e5',
+                    cancelButtonColor: '#6b7280'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
             }
         });
     }

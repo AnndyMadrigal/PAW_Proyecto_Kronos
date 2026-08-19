@@ -4,7 +4,7 @@
     ViewData["Title"] = "Editar producto";
 }
 
-<div class="max-w-2xl mx-auto space-y-6">
+<div class="max-w-2xl mx-auto">
     <div class="rounded-xl bg-white p-6 shadow-sm dark:bg-gray-800">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Editar producto</h1>
         <p class="mt-1 text-sm text-gray-500">Modifica los datos del producto o insumo médico.</p>
@@ -48,24 +48,10 @@
                 <input asp-for="minimum_stock" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:bg-gray-900 dark:border-gray-700" />
             </div>
 
-            <div class="pt-2 flex items-center justify-between">
-                <div>
-                    <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 cursor-pointer">Guardar cambios</button>
-                    <a asp-action="Index" class="ml-3 text-sm text-gray-600 hover:underline">Cancelar</a>
-                </div>
+            <div class="pt-2 flex items-center justify-end gap-3">
+                <a asp-action="Index" class="text-sm text-gray-600 hover:underline dark:text-gray-400">Cancelar</a>
+                <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 cursor-pointer">Guardar cambios</button>
             </div>
-        </form>
-    </div>
-
-    <!-- Zona de peligro: Eliminar producto -->
-    <div class="rounded-xl border border-red-200 bg-red-50/40 p-6 dark:border-red-900/50 dark:bg-red-950/20">
-        <h2 class="text-base font-semibold text-red-900 dark:text-red-300">Dar de baja producto</h2>
-        <p class="mt-1 text-xs text-red-700 dark:text-red-400">Esta acción marcará el producto como inactivo y lo ocultará de las listas de inventario activo.</p>
-        <form asp-controller="Inventory" asp-action="Eliminar" method="post" class="mt-4" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este producto?');">
-            <input type="hidden" name="id" value="@Model.id" />
-            <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 cursor-pointer">
-                Eliminar producto
-            </button>
         </form>
     </div>
 </div>
