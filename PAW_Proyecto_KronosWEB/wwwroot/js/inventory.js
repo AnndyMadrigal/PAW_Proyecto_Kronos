@@ -257,4 +257,27 @@ $(document).ready(function () {
         });
     }
 
+    // ==========================================
+    // 4. CONFIRMACIÓN ELIMINAR PRODUCTO
+    // ==========================================
+    $(document).on("submit", ".delete-inventory-form", function (e) {
+        e.preventDefault();
+        const form = this;
+
+        Swal.fire({
+            title: '¿Eliminar producto?',
+            text: 'Esta acción desactivará el producto del inventario.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+
 });
