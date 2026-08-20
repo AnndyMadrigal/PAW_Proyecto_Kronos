@@ -1,7 +1,7 @@
 @model InventoryItemViewModel
 @{
-    var categories = ViewBag.Categories as IEnumerable<CatalogItemViewModel> ?? Enumerable.Empty<CatalogItemViewModel>();
-    var units = ViewBag.Units as IEnumerable<CatalogItemViewModel> ?? Enumerable.Empty<CatalogItemViewModel>();
+    var categories = ViewBag.Categories as IEnumerable<InventoryReferenceViewModel> ?? Enumerable.Empty<InventoryReferenceViewModel>();
+    var units = ViewBag.Units as IEnumerable<InventoryReferenceViewModel> ?? Enumerable.Empty<InventoryReferenceViewModel>();
     var isEdit = Model.id > 0;
     ViewData["Title"] = isEdit ? "Editar producto" : "Nuevo producto";
 }
