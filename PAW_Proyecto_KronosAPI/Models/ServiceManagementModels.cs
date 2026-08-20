@@ -7,7 +7,7 @@ public class ServiceDefinitionRequestModel
     public string? description { get; set; }
     public bool is_billable { get; set; }
     public decimal? default_price { get; set; }
-    public string operational_route { get; set; } = "standard";
+    public string? linked_module_url { get; set; }
 }
 
 public class ServiceDefinitionResponseModel
@@ -18,7 +18,7 @@ public class ServiceDefinitionResponseModel
     public bool is_billable { get; set; }
     public decimal? default_price { get; set; }
     public bool is_active { get; set; }
-    public string operational_route { get; set; } = "standard";
+    public string? linked_module_url { get; set; }
 }
 
 public class ServiceEventInventoryUsageRequestModel

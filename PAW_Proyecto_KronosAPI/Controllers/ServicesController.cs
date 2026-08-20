@@ -12,6 +12,10 @@ namespace PAW_Proyecto_KronosAPI.Controllers;
 [ApiController]
 public class ServicesController(IConfiguration config, IHelpersService helpers) : ControllerBase
 {
+    private static readonly HashSet<string> LinkedModuleUrls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/Citas", "/Expedientes", "/Inventory/Movimientos", "/Services/EquipmentLoans"
+    };
     private SqlConnection Connection() => new(config["ConnectionStrings:DefaultConnection"]);
 
     [HttpGet]
@@ -107,6 +111,8 @@ public class ServicesController(IConfiguration config, IHelpersService helpers) 
     {
         if (string.IsNullOrWhiteSpace(model.name)) return BadRequest("El nombre del servicio es requerido.");
         if (model.default_price < 0) return BadRequest("El precio no puede ser negativo.");
+        if (!string.IsNullOrWhiteSpace(model.linked_module_url) && !LinkedModuleUrls.Contains(model.linked_module_url))
+            return BadRequest("El módulo vinculado seleccionado no es válido.");
         using var c = Connection();
         return Ok(c.QueryFirst("service_sp_service_save", model, commandType: System.Data.CommandType.StoredProcedure));
     }

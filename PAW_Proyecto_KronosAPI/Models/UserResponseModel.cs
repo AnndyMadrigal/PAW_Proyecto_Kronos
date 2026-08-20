@@ -18,4 +18,12 @@
     {
         public string role_name { get; set; } = string.Empty;
     }
+
+    public class UserRegistrationResponseModel
+    {
+        public bool success { get; set; }
+        public string message { get; set; } = string.Empty;
+        public int user_id { get; set; }
+        public string role_name { get; set; } = string.Empty;
+    }
 }

@@ -24,12 +24,12 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@email", model.email);
                 parameters.Add("@password", model.password);
 
-                var response = context.QueryFirstOrDefault<UserResponseModel>("spLoginUser", parameters);
+                var response = context.QueryFirstOrDefault<UserResponseModel>("spLoginUser", parameters, commandType: System.Data.CommandType.StoredProcedure);
                 if (response != null && BCrypt.Net.BCrypt.Verify(model.password, response.password))
                 {
                     var tokenId = Guid.NewGuid().ToString("N");
                     response.Token = _helpers.GenerateToken(response.id, tokenId);
-                    context.Execute("access_sp_auth_session_create", new { user_id = response.id, token_id = tokenId });
+                    context.Execute("access_sp_auth_session_create", new { user_id = response.id, token_id = tokenId }, commandType: System.Data.CommandType.StoredProcedure);
                     return Ok(response);
                 }
                 else
@@ -51,18 +51,18 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 var parameters = new DynamicParameters();
                 parameters.Add("@username", model.username);
                 parameters.Add("@email", model.email);
-                parameters.Add("@password", model.password);
+                parameters.Add("@password", BCrypt.Net.BCrypt.HashPassword(model.password));
                 parameters.Add("@full_name", model.full_name);
                 parameters.Add("@phone", model.phone);
 
-                var response = context.Execute("spRegisterBasicUser", parameters);
-                if (response > 0)
+                var response = context.QueryFirstOrDefault<UserRegistrationResponseModel>("spRegisterBasicUser", parameters, commandType: System.Data.CommandType.StoredProcedure);
+                if (response?.success == true)
                 {
                     return Ok("Usuario registrado correctamente");
                     
                 } else
                 {
-                    return BadRequest("El correo electronico ya se encuentra registrado");
+                    return BadRequest(response?.message ?? "No se pudo registrar el usuario.");
                 }
 
             }
@@ -79,7 +79,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 var parameters = new DynamicParameters();
                 parameters.Add("@email", model.email);
                 
-                var emailValidation = context.QueryFirstOrDefault<UserResponseModel>("spValidateEmail", parameters);
+                var emailValidation = context.QueryFirstOrDefault<UserResponseModel>("spValidateEmail", parameters, commandType: System.Data.CommandType.StoredProcedure);
                 
                 if (emailValidation == null)
                     return NotFound("El correo electronico no se encuentra registrado");
@@ -92,7 +92,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@id", emailValidation.id);
                 parameters.Add("@password", tempPasswordHash);
 
-                var updatePassword = context.Execute("spUpdatePassword", parameters);
+                var updatePassword = context.Execute("spUpdatePassword", parameters, commandType: System.Data.CommandType.StoredProcedure);
                 if (updatePassword > 0)
                 {
 

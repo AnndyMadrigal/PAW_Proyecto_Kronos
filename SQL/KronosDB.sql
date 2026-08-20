@@ -1,4 +1,15 @@
 /*============================================================================*/
+/* BASE DE DATOS: crea Kronos solo cuando todavía no existe. */
+USE [master]
+GO
+IF DB_ID(N'Kronos') IS NULL
+BEGIN
+    CREATE DATABASE [Kronos]
+END
+GO
+USE [Kronos]
+GO
+
 /* ENCABEZADO Y CONFIGURACION DE BASE DE DATOS */
 /*============================================================================*/
 /****** Objeto: UserDefinedFunction [dbo].[config_fn_catalog_item_value] Fecha de script: 23/7/2026 18:22:29 ******/
@@ -12265,6 +12276,113 @@ BEGIN
     VALUES(@inventory_item_id, @inventory_batch_id, @location_id, @movement_type_id, @source_type_id, @signed, @unit_cost, COALESCE(@unit_cost, 0) * @quantity, SYSDATETIME(), @notes, @created_by_user_id, SYSDATETIME())
     COMMIT TRANSACTION
     SELECT CAST(1 AS bit) AS success, @inventory_batch_id AS inventory_batch_id
+END
+GO
+
+/* Configuración: opciones activas para clasificar adjuntos clínicos. */
+CREATE OR ALTER PROCEDURE dbo.config_sp_document_types_list
+AS
+BEGIN
+    SET NOCOUNT ON
+    SELECT id, name, description
+    FROM dbo.config_tbl_document_types
+    WHERE is_active = 1 AND deleted = 0
+    ORDER BY name
+END
+GO
+
+/* Servicios: módulo vinculado opcional para redirigir la gestión. */
+IF COL_LENGTH(N'dbo.service_tbl_services', N'linked_module_url') IS NULL
+    ALTER TABLE dbo.service_tbl_services ADD linked_module_url nvarchar(200) NULL
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_services_list
+AS
+BEGIN
+    SET NOCOUNT ON
+    SELECT id, name, description, is_billable, default_price, is_active,
+           COALESCE(NULLIF(linked_module_url, N''), CASE
+               WHEN operational_route = N'appointments' THEN N'/Citas'
+               WHEN operational_route = N'clinical_record' THEN N'/Expedientes'
+               WHEN name LIKE N'%préstamo%' OR name LIKE N'%alquiler%' THEN N'/Services/EquipmentLoans'
+               WHEN operational_route = N'inventory' THEN N'/Inventory/Movimientos'
+               ELSE NULL END) AS linked_module_url
+    FROM dbo.service_tbl_services
+    WHERE deleted = 0
+    ORDER BY is_active DESC, name
+END
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_service_save
+    @id int = NULL,
+    @name nvarchar(150),
+    @description nvarchar(500) = NULL,
+    @is_billable bit = 0,
+    @default_price decimal(18,2) = NULL,
+    @linked_module_url nvarchar(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET @linked_module_url = NULLIF(LTRIM(RTRIM(@linked_module_url)), N'')
+    IF @linked_module_url IS NOT NULL AND @linked_module_url NOT IN (N'/Citas', N'/Expedientes', N'/Inventory/Movimientos', N'/Services/EquipmentLoans')
+        THROW 50063, N'El módulo vinculado indicado no es válido.', 1
+    DECLARE @operational_route nvarchar(30) = CASE @linked_module_url
+        WHEN N'/Citas' THEN N'appointments'
+        WHEN N'/Expedientes' THEN N'clinical_record'
+        WHEN N'/Inventory/Movimientos' THEN N'inventory'
+        WHEN N'/Services/EquipmentLoans' THEN N'inventory'
+        ELSE N'standard' END
+    IF @id IS NULL OR @id = 0
+    BEGIN
+        INSERT dbo.service_tbl_services(name, description, is_billable, default_price, operational_route, linked_module_url, is_active, deleted, created_at)
+        VALUES(@name, NULLIF(LTRIM(RTRIM(@description)), N''), @is_billable, CASE WHEN @is_billable = 1 THEN @default_price ELSE NULL END, @operational_route, @linked_module_url, 1, 0, SYSDATETIME())
+        SET @id = SCOPE_IDENTITY()
+    END
+    ELSE
+    BEGIN
+        UPDATE dbo.service_tbl_services
+        SET name = @name, description = NULLIF(LTRIM(RTRIM(@description)), N''), is_billable = @is_billable,
+            default_price = CASE WHEN @is_billable = 1 THEN @default_price ELSE NULL END,
+            operational_route = @operational_route, linked_module_url = @linked_module_url, updated_at = SYSDATETIME()
+        WHERE id = @id AND deleted = 0
+        IF @@ROWCOUNT = 0 THROW 50040, N'El servicio indicado no existe.', 1
+    END
+    SELECT CAST(1 AS bit) AS success, @id AS id
+END
+GO
+
+/* Registro público: cada cuenta nueva recibe el rol activo Paciente. */
+CREATE OR ALTER PROCEDURE dbo.spRegisterBasicUser
+    @username nvarchar(100),
+    @email nvarchar(256),
+    @password nvarchar(500),
+    @full_name nvarchar(200),
+    @phone nvarchar(30) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET XACT_ABORT ON
+    DECLARE @patient_role_id int
+    DECLARE @new_user_id int
+    SELECT TOP (1) @patient_role_id = id
+    FROM dbo.access_tbl_roles
+    WHERE name = N'Paciente' AND is_active = 1 AND deleted = 0
+    IF @patient_role_id IS NULL
+    BEGIN
+        SELECT CAST(0 AS bit) AS success, N'No existe un perfil de Paciente activo para la nueva cuenta.' AS message, CAST(0 AS int) AS user_id, N'' AS role_name
+        RETURN
+    END
+    IF EXISTS (SELECT 1 FROM dbo.access_tbl_users WHERE email = @email OR username = @username)
+    BEGIN
+        SELECT CAST(0 AS bit) AS success, N'El correo o nombre de usuario ya está registrado.' AS message, CAST(0 AS int) AS user_id, N'' AS role_name
+        RETURN
+    END
+    BEGIN TRANSACTION
+        INSERT dbo.access_tbl_users(username, email, password, full_name, phone, failed_login_attempts, lockout_until, last_login_at, is_active, deleted, created_at, updated_at)
+        VALUES(@username, @email, @password, @full_name, @phone, 0, NULL, NULL, 1, 0, SYSDATETIME(), NULL)
+        SET @new_user_id = SCOPE_IDENTITY()
+        INSERT dbo.access_tbl_user_roles(user_id, role_id, created_at)
+        VALUES(@new_user_id, @patient_role_id, SYSDATETIME())
+    COMMIT TRANSACTION
+    SELECT CAST(1 AS bit) AS success, N'Usuario registrado correctamente.' AS message, @new_user_id AS user_id, N'Paciente' AS role_name
 END
 GO
 

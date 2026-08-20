@@ -367,7 +367,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@staff_role_id", (int?)null);
 
                 var response = context.Query<StaffOptionResponseModel>(
-                    "staff_sp_members_search", parameters).ToList();
+                    "staff_sp_members_search", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -384,7 +384,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 parameters.Add("@catalog_name", catalogName);
 
                 var response = context.Query<CatalogItemResponseModel>(
-                    "config_sp_catalog_items_list", parameters).ToList();
+                    "config_sp_catalog_items_list", parameters, commandType: System.Data.CommandType.StoredProcedure).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -399,7 +399,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             try
             {
                 var response = context.Query<DocumentTypeResponseModel>(
-                    "config_sp_document_types_list").ToList();
+                    "config_sp_document_types_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -414,7 +414,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             try
             {
                 var response = context.Query<DocumentTypeResponseModel>(
-                    "medical_sp_conditions_list").ToList();
+                    "medical_sp_conditions_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }
@@ -429,7 +429,7 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             try
             {
                 var response = context.Query<DocumentTypeResponseModel>(
-                    "medical_sp_medications_list").ToList();
+                    "medical_sp_medications_list", commandType: System.Data.CommandType.StoredProcedure).ToList();
                 return Ok(response);
             }
             catch (SqlException ex) { return HandleSqlException(ex); }

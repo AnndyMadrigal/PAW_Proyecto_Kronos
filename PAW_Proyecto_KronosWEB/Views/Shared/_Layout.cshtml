@@ -2,6 +2,11 @@
 @{
     var name = Context.Session.GetString("Name");
     var roleName = Context.Session.GetString("RoleName");
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    bool IsCurrentPage(string controller, string? action = null) =>
+        string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) &&
+        (action is null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase));
 }
 
 <!DOCTYPE html>
@@ -27,6 +32,9 @@
             box-shadow: 0 24px 60px rgb(15 23 42 / 0.35) !important;
         }
         .dark div[x-cloak].fixed.inset-0.z-50 > div { border-color: rgb(55 65 81) !important; }
+        .sidebar-active { background-color: rgb(239 246 255); color: rgb(37 99 235) !important; }
+        .sidebar-active:hover { background-color: rgb(219 234 254) !important; }
+        .dark .sidebar-active { background-color: rgb(30 58 138 / 0.35); color: rgb(147 197 253) !important; }
     </style>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -47,41 +55,41 @@
             <nav class="flex-1 space-y-5 overflow-y-auto p-4">
                 <section>
                     <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Inicio</p>
-                    <a asp-controller="Home" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Dashboard</a>
+                    <a asp-controller="Home" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Home", "Index") ? "sidebar-active" : "")">Dashboard</a>
                 </section>
 
                 <section x-data="{ open: @((ViewContext.RouteData.Values["controller"]?.ToString() == "Citas").ToString().ToLower()) }">
                     <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Atención y expedientes</p>
-                    <button type="button" @@click="open = !open" class="flex w-full items-center justify-between rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"><span>Citas y agenda</span><span class="text-xs transition-transform" :class="{ 'rotate-180': open }">⌄</span></button>
+                    <button type="button" @@click="open = !open" class="flex w-full items-center justify-between rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Citas") ? "sidebar-active" : "")"><span>Citas y agenda</span><span class="text-xs transition-transform" :class="{ 'rotate-180': open }">⌄</span></button>
                     <div x-show="open" class="ml-3 border-l border-gray-200 pl-3 dark:border-gray-700">
-                        <a asp-controller="Citas" asp-action="Index" class="mt-1 block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">Calendario mensual</a>
-                        <a asp-controller="Citas" asp-action="Agenda" class="mt-1 block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">Listado de citas</a>
+                        <a asp-controller="Citas" asp-action="Index" class="mt-1 block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5 @(IsCurrentPage("Citas", "Index") ? "sidebar-active" : "")">Calendario mensual</a>
+                        <a asp-controller="Citas" asp-action="Agenda" class="mt-1 block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5 @(IsCurrentPage("Citas", "Agenda") ? "sidebar-active" : "")">Listado de citas</a>
                     </div>
-                    <a asp-controller="Patients" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Pacientes</a>
-                    <a asp-controller="Expedientes" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Expedientes médicos</a>
+                    <a asp-controller="Patients" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Patients") ? "sidebar-active" : "")">Pacientes</a>
+                    <a asp-controller="Expedientes" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Expedientes") ? "sidebar-active" : "")">Expedientes médicos</a>
                 </section>
 
                 <section>
                     <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Operación</p>
-                    <a asp-controller="Services" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Servicios y atención</a>
-                    <a asp-controller="Services" asp-action="EquipmentLoans" class="mt-1 block rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">Préstamo y alquiler de equipo</a>
-                    <a asp-controller="Staff" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Personal</a>
-                    <a asp-controller="Inventory" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Inventario</a>
-                    <a asp-controller="Inventory" asp-action="Movimientos" class="mt-1 block rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">Movimientos de inventario</a>
+                    <a asp-controller="Services" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Services", "Index") ? "sidebar-active" : "")">Servicios y atención</a>
+                    <a asp-controller="Services" asp-action="EquipmentLoans" class="mt-1 block rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5 @(IsCurrentPage("Services", "EquipmentLoans") ? "sidebar-active" : "")">Préstamo y alquiler de equipo</a>
+                    <a asp-controller="Staff" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Staff") ? "sidebar-active" : "")">Personal</a>
+                    <a asp-controller="Inventory" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Inventory", "Index") ? "sidebar-active" : "")">Inventario</a>
+                    <a asp-controller="Inventory" asp-action="Movimientos" class="mt-1 block rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5 @(IsCurrentPage("Inventory", "Movimientos") ? "sidebar-active" : "")">Movimientos de inventario</a>
                 </section>
 
                 <section>
                     <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Gestión</p>
-                    <a asp-controller="Financial" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Finanzas</a>
-                    <a asp-controller="Reports" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Reportes</a>
+                    <a asp-controller="Financial" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Financial") ? "sidebar-active" : "")">Finanzas</a>
+                    <a asp-controller="Reports" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Reports") ? "sidebar-active" : "")">Reportes</a>
                 </section>
 
                 @if (string.Equals(roleName, "Administrador", StringComparison.OrdinalIgnoreCase))
                 {
                     <section>
                         <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Administración</p>
-                        <a asp-controller="Catalogs" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Catálogos operativos</a>
-                        <a asp-controller="Users" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Usuarios y perfiles</a>
+                        <a asp-controller="Catalogs" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Catalogs") ? "sidebar-active" : "")">Catálogos operativos</a>
+                        <a asp-controller="Users" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 @(IsCurrentPage("Users") ? "sidebar-active" : "")">Usuarios y perfiles</a>
                     </section>
                 }
             </nav>
