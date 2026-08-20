@@ -1,12 +1,57 @@
-@inject IConfiguration Configuration
 @{
-    Layout = "_Layout";
     ViewData["Title"] = "Movimientos de inventario";
 }
-<div class="space-y-6" x-data="inventoryMovements()" x-init="load()">
-    <div><h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Movimientos de inventario</h1><p class="mt-1 text-sm text-gray-500">Registre entradas, salidas y ajustes. Cada operación actualiza las existencias disponibles.</p></div>
+
+<div class="space-y-6 p-6" x-data="inventoryMovements()" x-init="load()">
+    <div>
+        <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Movimientos de inventario</h1>
+        <p class="mt-1 text-sm text-gray-500">Registre entradas, salidas y ajustes. Cada operación actualiza las existencias disponibles.</p>
+    </div>
     <p x-show="message" class="rounded-lg bg-red-50 p-3 text-sm text-red-700" x-text="message"></p>
-    <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[.03]"><h2 class="mb-4 text-lg font-semibold">Nuevo movimiento</h2><form @@submit.prevent="save()" class="grid gap-4 md:grid-cols-2"><div><label class="mb-1 block text-sm font-medium">Tipo</label><select x-model="form.movement_type" class="w-full rounded-lg border p-2.5"><option value="entry">Entrada / reposición</option><option value="exit">Salida / consumo operativo</option><option value="adjustment">Ajuste positivo</option></select></div><div><label class="mb-1 block text-sm font-medium">Producto</label><select required x-model.number="form.inventory_item_id" class="w-full rounded-lg border p-2.5"><option value="">Seleccione un producto</option><template x-for="item in items" :key="item.id"><option :value="item.id" x-text="item.name"></option></template></select></div><div><label class="mb-1 block text-sm font-medium">Ubicación</label><select required x-model.number="form.location_id" class="w-full rounded-lg border p-2.5"><option value="">Seleccione una ubicación</option><template x-for="location in references.locations" :key="location.id"><option :value="location.id" x-text="location.name"></option></template></select></div><div><label class="mb-1 block text-sm font-medium">Cantidad</label><input required min="0.0001" step="0.0001" type="number" x-model.number="form.quantity" class="w-full rounded-lg border p-2.5"></div><template x-if="form.movement_type !== 'exit'"><div><label class="mb-1 block text-sm font-medium">Lote <span class="font-normal text-gray-500">(opcional)</span></label><input x-model="form.batch_number" class="w-full rounded-lg border p-2.5" placeholder="Código de lote"></div></template><template x-if="form.movement_type === 'entry'"><div><label class="mb-1 block text-sm font-medium">Costo unitario <span class="font-normal text-gray-500">(opcional)</span></label><input min="0" step=".01" type="number" x-model.number="form.unit_cost" class="w-full rounded-lg border p-2.5"></div></template><div class="md:col-span-2"><label class="mb-1 block text-sm font-medium">Observación <span class="font-normal text-gray-500">(opcional)</span></label><input x-model="form.notes" class="w-full rounded-lg border p-2.5" placeholder="Motivo o detalle del movimiento"></div><div class="md:col-span-2"><button class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white">Guardar movimiento</button></div></form></section>
-    <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[.03]"><div class="mb-4 flex items-center justify-between"><h2 class="text-lg font-semibold">Existencia actual</h2><a asp-action="Index" class="text-sm text-brand-600">Administrar productos</a></div><div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="border-b text-left text-gray-500"><tr><th class="p-3">Producto</th><th class="p-3">Categoría</th><th class="p-3">Disponible</th><th class="p-3">Mínimo</th><th class="p-3">Estado</th></tr></thead><tbody><template x-for="row in stock" :key="row.inventory_item_id"><tr class="border-b"><td class="p-3 font-medium" x-text="row.name"></td><td class="p-3" x-text="row.category_name"></td><td class="p-3" x-text="row.quantity_available+' '+row.unit_name"></td><td class="p-3" x-text="row.minimum_stock"></td><td class="p-3"><span class="rounded-full px-2 py-1 text-xs" :class="row.quantity_available <= row.minimum_stock ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'" x-text="row.quantity_available <= row.minimum_stock ? 'Reponer' : 'Disponible'"></span></td></tr></template></tbody></table></div></section>
+
+    <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[.03]">
+        <h2 class="mb-4 text-lg font-semibold">Nuevo movimiento</h2>
+        <form @@submit.prevent="save()" class="grid gap-4 md:grid-cols-2">
+            <div><label class="mb-1 block text-sm font-medium">Tipo</label><select x-model="form.movement_type" class="w-full rounded-lg border p-2.5"><option value="entry">Entrada / reposición</option><option value="exit">Salida / consumo operativo</option><option value="adjustment">Ajuste positivo</option></select></div>
+            <div><label class="mb-1 block text-sm font-medium">Producto</label><select required x-model.number="form.inventory_item_id" class="w-full rounded-lg border p-2.5"><option value="">Seleccione un producto</option><template x-for="item in items" :key="item.id"><option :value="item.id" x-text="item.name"></option></template></select></div>
+            <div><label class="mb-1 block text-sm font-medium">Ubicación</label><select required x-model.number="form.location_id" class="w-full rounded-lg border p-2.5"><option value="">Seleccione una ubicación</option><template x-for="location in references.locations" :key="location.id"><option :value="location.id" x-text="location.name"></option></template></select></div>
+            <div><label class="mb-1 block text-sm font-medium">Cantidad</label><input required min="0.01" step="0.01" type="number" x-model.number="form.quantity" class="w-full rounded-lg border p-2.5"><p class="mt-1 text-xs text-gray-500">Máximo dos decimales.</p></div>
+            <template x-if="form.movement_type !== 'exit'"><div><label class="mb-1 block text-sm font-medium">Lote <span class="font-normal text-gray-500">(opcional)</span></label><input x-model="form.batch_number" class="w-full rounded-lg border p-2.5" placeholder="Código de lote"></div></template>
+            <template x-if="form.movement_type === 'entry'"><div><label class="mb-1 block text-sm font-medium">Costo unitario <span class="font-normal text-gray-500">(opcional)</span></label><input min="0" step=".01" type="number" x-model.number="form.unit_cost" class="w-full rounded-lg border p-2.5"></div></template>
+            <div class="md:col-span-2"><label class="mb-1 block text-sm font-medium">Observación <span class="font-normal text-gray-500">(opcional)</span></label><input x-model="form.notes" class="w-full rounded-lg border p-2.5" placeholder="Motivo o detalle del movimiento"></div>
+            <div class="md:col-span-2"><button class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white">Guardar movimiento</button></div>
+        </form>
+    </section>
+
+    <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[.03]">
+        <div class="mb-4 flex items-center justify-between"><h2 class="text-lg font-semibold">Existencia actual</h2><a asp-action="Index" class="text-sm text-brand-600">Ver panel de inventario</a></div>
+        <div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="border-b text-left text-gray-500"><tr><th class="p-3">Producto</th><th class="p-3">Categoría</th><th class="p-3">Disponible</th><th class="p-3">Mínimo</th><th class="p-3">Estado</th></tr></thead><tbody><template x-for="row in stock" :key="row.inventory_item_id"><tr class="border-b"><td class="p-3 font-medium" x-text="row.name"></td><td class="p-3" x-text="row.category_name"></td><td class="p-3" x-text="formatQuantity(row.quantity_available) + ' ' + row.unit_name"></td><td class="p-3" x-text="formatQuantity(row.minimum_stock)"></td><td class="p-3"><span class="rounded-full px-2 py-1 text-xs" :class="row.quantity_available <= row.minimum_stock ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'" x-text="row.quantity_available <= row.minimum_stock ? 'Reponer' : 'Disponible'"></span></td></tr></template></tbody></table></div>
+    </section>
 </div>
-@section Scripts {<script>function inventoryMovements(){const base='@Configuration["Valores:UrlApi"]Inventory/',headers={'Content-Type':'application/json','Authorization':'Bearer @Context.Session.GetString("Token")'},empty=()=>({movement_type:'entry',inventory_item_id:null,location_id:null,quantity:null,batch_number:'',unit_cost:null,notes:''});return{items:[],references:{locations:[]},stock:[],message:'',form:empty(),async load(){const [items,references,stock]=await Promise.all([fetch(base+'Items',{headers}),fetch(base+'References',{headers}),fetch(base+'Stock',{headers})]);if(items.ok)this.items=await items.json();if(references.ok)this.references=await references.json();if(stock.ok)this.stock=await stock.json()},async save(){const endpoint=this.form.movement_type==='entry'?'Entries':this.form.movement_type==='exit'?'Exits':'Adjustments',payload={...this.form,inventory_batch_id:null,expiration_date:null,unit_cost:this.form.unit_cost||null,notes:this.form.notes||null,batch_number:this.form.batch_number||null};const response=await fetch(base+endpoint,{method:'POST',headers,body:JSON.stringify(payload)});if(!response.ok){this.message=await response.text();return}this.form=empty();this.message='';await this.load()}}}</script>}
+
+@section Scripts {
+    <script>
+        function inventoryMovements() {
+            const base = '@Configuration["Valores:UrlApi"]Inventory/';
+            const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer @Context.Session.GetString("Token")' };
+            const empty = () => ({ movement_type: 'entry', inventory_item_id: null, location_id: null, quantity: null, batch_number: '', unit_cost: null, notes: '' });
+            return {
+                items: [], references: { locations: [] }, stock: [], message: '', form: empty(),
+                formatQuantity(value) { return Number(value || 0).toLocaleString('es-CR', { maximumFractionDigits: 2 }); },
+                async load() {
+                    const [items, references, stock] = await Promise.all([fetch(base + 'Items', { headers }), fetch(base + 'References', { headers }), fetch(base + 'Stock', { headers })]);
+                    if (items.ok) this.items = await items.json();
+                    if (references.ok) this.references = await references.json();
+                    if (stock.ok) this.stock = await stock.json();
+                },
+                async save() {
+                    const endpoint = this.form.movement_type === 'entry' ? 'Entries' : this.form.movement_type === 'exit' ? 'Exits' : 'Adjustments';
+                    const payload = { ...this.form, inventory_batch_id: null, expiration_date: null, unit_cost: this.form.unit_cost || null, notes: this.form.notes || null, batch_number: this.form.batch_number || null };
+                    const response = await fetch(base + endpoint, { method: 'POST', headers, body: JSON.stringify(payload) });
+                    if (!response.ok) { this.message = await response.text(); return; }
+                    this.form = empty(); this.message = ''; await this.load();
+                }
+            };
+        }
+    </script>
+}

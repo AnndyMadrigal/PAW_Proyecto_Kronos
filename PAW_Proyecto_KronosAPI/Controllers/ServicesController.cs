@@ -73,6 +73,8 @@ public class ServicesController(IConfiguration config, IHelpersService helpers) 
     {
         if (model.inventory_item_id <= 0 || model.location_id <= 0 || model.quantity_used <= 0)
             return BadRequest("Seleccione el producto, la ubicación y una cantidad válida.");
+        if (decimal.Round(model.quantity_used, 2) != model.quantity_used)
+            return BadRequest("La cantidad utilizada admite como máximo dos decimales.");
         using var c = Connection();
         return Ok(c.QueryFirst("service_sp_event_inventory_usage_add", new
         {

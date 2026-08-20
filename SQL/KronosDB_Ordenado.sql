@@ -232,8 +232,8 @@ BEGIN
 END
 GO
 
-/* Definiciones operativas pospuestas: el bloque efectivo se agrega después de las tablas.
-IF COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL
+-- Definiciones operativas tempranas deshabilitadas; la versión efectiva está al final del archivo.
+IF 1 = 0 AND COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL
 BEGIN
     ALTER TABLE dbo.service_tbl_services ADD operational_route nvarchar(30) NOT NULL CONSTRAINT df_service_tbl_services_operational_route DEFAULT N'standard'
 END
@@ -290,8 +290,8 @@ BEGIN
 END
 GO
 
-/* BLOQUE POSPUESTO: estas definiciones se ejecutan al final del archivo, después de crear las tablas.
-IF COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL
+-- Bloque temprano deshabilitado; evita alterar tablas antes de que existan.
+IF 1 = 0 AND COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL
 BEGIN
     ALTER TABLE dbo.service_tbl_services ADD operational_route nvarchar(30) NOT NULL CONSTRAINT df_service_tbl_services_operational_route DEFAULT N'standard'
 END
@@ -377,7 +377,7 @@ BEGIN
     SELECT CAST(1 AS bit) AS success, @inventory_batch_id AS inventory_batch_id
 END
 GO
-*/
+-- Fin del bloque temprano deshabilitado.
 
 /*
 -------------------------------------------------------------------------------
@@ -8984,4 +8984,73 @@ BEGIN
  ELSE BEGIN UPDATE dbo.service_tbl_services SET name=@name,description=@description,is_billable=@is_billable,default_price=CASE WHEN @is_billable=1 THEN @default_price ELSE NULL END,operational_route=@operational_route,updated_at=SYSDATETIME() WHERE id=@id AND deleted=0 IF @@ROWCOUNT=0 THROW 50040,N'El servicio indicado no existe.',1 END
  SELECT CAST(1 AS bit) success,@id id
 END
+GO
+
+IF OBJECT_ID(N'dbo.service_tbl_equipment_loans', N'U') IS NULL
+CREATE TABLE dbo.service_tbl_equipment_loans (id int IDENTITY(1,1) NOT NULL PRIMARY KEY,patient_id int NOT NULL,inventory_item_id int NOT NULL,inventory_batch_id int NOT NULL,location_id int NOT NULL,loan_type nvarchar(20) NOT NULL,loaned_at datetime2(0) NOT NULL,expected_return_at datetime2(0) NULL,returned_at datetime2(0) NULL,amount decimal(18,2) NULL,status nvarchar(20) NOT NULL,notes nvarchar(max) NULL,return_notes nvarchar(max) NULL,created_by_user_id int NOT NULL,returned_by_user_id int NULL,created_at datetime2(0) NOT NULL,updated_at datetime2(0) NULL)
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_equipment_loan_reference_data_get AS
+BEGIN
+ SET NOCOUNT ON
+ SELECT id,CONCAT(first_name,N' ',last_name) name FROM patient_tbl_patients WHERE deleted=0 AND is_active=1 ORDER BY first_name,last_name
+ SELECT i.id,i.name FROM inventory_tbl_items i INNER JOIN inventory_tbl_categories c ON c.id=i.inventory_category_id WHERE i.deleted=0 AND i.is_active=1 AND c.name=N'Equipo médico' AND EXISTS(SELECT 1 FROM inventory_tbl_batches b WHERE b.inventory_item_id=i.id AND b.deleted=0 AND b.is_active=1 AND b.quantity_available>=1) ORDER BY i.name
+ SELECT id,name FROM location_tbl_locations WHERE deleted=0 AND is_active=1 ORDER BY name
+END
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_equipment_loans_list AS
+BEGIN
+ SET NOCOUNT ON
+ SELECT l.id,CONCAT(p.first_name,N' ',p.last_name) patient_name,i.name equipment_name,loc.name location_name,l.loan_type,l.loaned_at,l.expected_return_at,l.returned_at,l.amount,l.status,l.notes FROM service_tbl_equipment_loans l INNER JOIN patient_tbl_patients p ON p.id=l.patient_id INNER JOIN inventory_tbl_items i ON i.id=l.inventory_item_id INNER JOIN location_tbl_locations loc ON loc.id=l.location_id ORDER BY CASE WHEN l.status=N'active' THEN 0 ELSE 1 END,l.expected_return_at,l.loaned_at DESC
+END
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_equipment_loan_create @patient_id int,@inventory_item_id int,@location_id int,@loan_type nvarchar(20),@loaned_at datetime2(0),@expected_return_at datetime2(0)=NULL,@amount decimal(18,2)=NULL,@notes nvarchar(max)=NULL,@created_by_user_id int AS
+BEGIN
+ SET NOCOUNT ON SET XACT_ABORT ON BEGIN TRANSACTION
+ DECLARE @batch int
+ IF @loan_type NOT IN(N'loan',N'rental') THROW 50060,N'El tipo de entrega no es válido.',1
+ IF @loan_type=N'loan' SET @amount=NULL
+ SELECT TOP 1 @batch=id FROM inventory_tbl_batches WHERE inventory_item_id=@inventory_item_id AND location_id=@location_id AND deleted=0 AND is_active=1 AND quantity_available>=1 ORDER BY expiration_date,id
+ IF @batch IS NULL THROW 50061,N'El equipo seleccionado no está disponible en esa ubicación.',1
+ UPDATE inventory_tbl_batches SET quantity_available=quantity_available-1,updated_at=SYSDATETIME() WHERE id=@batch
+ INSERT service_tbl_equipment_loans(patient_id,inventory_item_id,inventory_batch_id,location_id,loan_type,loaned_at,expected_return_at,amount,status,notes,created_by_user_id,created_at) VALUES(@patient_id,@inventory_item_id,@batch,@location_id,@loan_type,@loaned_at,@expected_return_at,@amount,N'active',@notes,@created_by_user_id,SYSDATETIME())
+ COMMIT TRANSACTION SELECT CAST(1 AS bit) success,SCOPE_IDENTITY() id
+END
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_equipment_loan_return @id int,@notes nvarchar(max)=NULL,@returned_by_user_id int AS
+BEGIN
+ SET NOCOUNT ON SET XACT_ABORT ON BEGIN TRANSACTION
+ DECLARE @batch int
+ SELECT @batch=inventory_batch_id FROM service_tbl_equipment_loans WHERE id=@id AND status=N'active'
+ IF @batch IS NULL THROW 50062,N'El préstamo indicado no está activo.',1
+ UPDATE inventory_tbl_batches SET quantity_available=quantity_available+1,updated_at=SYSDATETIME() WHERE id=@batch
+ UPDATE service_tbl_equipment_loans SET status=N'returned',returned_at=SYSDATETIME(),return_notes=@notes,returned_by_user_id=@returned_by_user_id,updated_at=SYSDATETIME() WHERE id=@id
+ COMMIT TRANSACTION SELECT CAST(1 AS bit) success,@id id
+END
+GO
+
+/* Equipos de demostración para préstamo y alquiler. */
+INSERT inventory_tbl_items(inventory_category_id,inventory_unit_id,name,description,minimum_stock,requires_expiration_date,is_active,deleted,created_at)
+SELECT c.id,u.id,seed.name,seed.description,1,0,1,0,SYSDATETIME()
+FROM (VALUES(N'Concentrador de oxígeno portátil',N'Equipo para soporte respiratorio domiciliario'),(N'Silla de ruedas plegable',N'Equipo de movilidad para préstamo temporal'),(N'Cama hospitalaria articulada',N'Equipo de cuidado domiciliario')) seed(name,description)
+CROSS JOIN inventory_tbl_categories c CROSS JOIN inventory_tbl_units u
+WHERE c.name=N'Equipo médico' AND u.name=N'Unidad'
+GO
+INSERT inventory_tbl_batches(inventory_item_id,location_id,batch_number,expiration_date,unit_cost,quantity_initial,quantity_available,is_active,deleted,created_at)
+SELECT i.id,(SELECT TOP 1 id FROM location_tbl_locations WHERE deleted=0 AND is_active=1 ORDER BY id),N'DEMO-EQ-'+CONVERT(nvarchar(20),i.id),NULL,0,2,2,1,0,SYSDATETIME()
+FROM inventory_tbl_items i INNER JOIN inventory_tbl_categories c ON c.id=i.inventory_category_id
+WHERE c.name=N'Equipo médico' AND i.name IN(N'Concentrador de oxígeno portátil',N'Silla de ruedas plegable',N'Cama hospitalaria articulada')
+GO
+
+/* Inventario: las cantidades operativas admiten hasta dos decimales. */
+IF OBJECT_ID(N'dbo.ck_inventory_tbl_items_minimum_stock_scale', N'C') IS NULL
+    ALTER TABLE dbo.inventory_tbl_items ADD CONSTRAINT ck_inventory_tbl_items_minimum_stock_scale CHECK (minimum_stock = ROUND(minimum_stock, 2))
+GO
+IF OBJECT_ID(N'dbo.ck_inventory_tbl_batches_quantity_scale', N'C') IS NULL
+    ALTER TABLE dbo.inventory_tbl_batches ADD CONSTRAINT ck_inventory_tbl_batches_quantity_scale CHECK (quantity_initial = ROUND(quantity_initial, 2) AND quantity_available = ROUND(quantity_available, 2))
+GO
+IF OBJECT_ID(N'dbo.ck_inventory_tbl_movements_quantity_scale', N'C') IS NULL
+    ALTER TABLE dbo.inventory_tbl_movements ADD CONSTRAINT ck_inventory_tbl_movements_quantity_scale CHECK (quantity = ROUND(quantity, 2))
+GO
+IF OBJECT_ID(N'dbo.ck_service_tbl_event_inventory_usage_quantity_scale', N'C') IS NULL
+    ALTER TABLE dbo.service_tbl_event_inventory_usage ADD CONSTRAINT ck_service_tbl_event_inventory_usage_quantity_scale CHECK (quantity_used = ROUND(quantity_used, 2))
 GO

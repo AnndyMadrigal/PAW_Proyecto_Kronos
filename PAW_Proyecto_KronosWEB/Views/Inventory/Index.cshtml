@@ -1,15 +1,21 @@
-@model List<InventoryItemViewModel>
+@model List<InventoryStockViewModel>
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Inventario";
+    var isAdministrator = string.Equals(Context.Session.GetString("RoleName"), "Administrador", StringComparison.OrdinalIgnoreCase);
+    var lowStock = Model.Count(x => x.quantity_available <= x.minimum_stock);
 }
-<div class="p-6 space-y-6">
- <div class="flex items-center justify-between"><div><h1 class="text-2xl font-semibold">Inventario</h1><p class="text-sm text-gray-500">Productos, niveles mínimos y trazabilidad operativa.</p></div><a asp-action="Crear" class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white">Nuevo producto</a></div>
- @if (TempData["Mensaje"] is string message) { <div class="rounded-lg bg-green-50 p-3 text-green-700">@message</div> }
- @if (TempData["MensajeError"] is string error) { <div class="rounded-lg bg-red-50 p-3 text-red-700">@error</div> }
- <form method="get" class="flex gap-3"><input name="search" value="@ViewBag.Search" placeholder="Buscar producto" class="rounded-lg border px-3 py-2"/><button class="rounded-lg border px-4 py-2">Buscar</button></form>
- <div class="overflow-x-auto rounded-xl border"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-3 text-left">Producto</th><th class="p-3 text-left">Categoría</th><th class="p-3 text-left">Unidad</th><th class="p-3 text-left">Mínimo</th><th class="p-3"></th></tr></thead><tbody>
- @foreach (var item in Model) { <tr class="border-t"><td class="p-3"><strong>@item.name</strong><div class="text-gray-500">@item.description</div></td><td class="p-3">@item.category_name</td><td class="p-3">@item.unit_name @item.unit_abbreviation</td><td class="p-3">@item.minimum_stock</td><td class="p-3 whitespace-nowrap"><a asp-action="Editar" asp-route-id="@item.id" class="text-blue-600">Editar</a><form asp-action="Eliminar" method="post" class="inline delete-form"><input type="hidden" name="id" value="@item.id"/><button class="ml-3 text-red-600">Eliminar</button></form></td></tr> }
- </tbody></table></div>
+<div class="space-y-6">
+    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div><h1 class="text-2xl font-semibold text-gray-800 dark:text-white">Stock actual</h1><p class="mt-1 text-sm text-gray-500">Existencias disponibles, niveles mínimos y acciones operativas de inventario.</p></div>
+        <div class="flex flex-wrap gap-3">
+            <a asp-action="Movimientos" class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white">Registrar movimiento</a>
+            @if (isAdministrator) { <a asp-action="Crear" class="rounded-lg border border-brand-500 px-4 py-2.5 text-sm font-medium text-brand-600">Registrar producto</a> }
+        </div>
+    </div>
+    @if (TempData["Mensaje"] is string message) { <div class="rounded-lg bg-green-50 p-3 text-green-700">@message</div> }
+    @if (TempData["MensajeError"] is string error) { <div class="rounded-lg bg-red-50 p-3 text-red-700">@error</div> }
+    <div class="grid gap-4 sm:grid-cols-3"><div class="rounded-2xl border bg-white p-5"><p class="text-sm text-gray-500">Productos con stock</p><p class="mt-2 text-3xl font-semibold">@Model.Count</p></div><div class="rounded-2xl border bg-white p-5"><p class="text-sm text-gray-500">Unidades disponibles</p><p class="mt-2 text-3xl font-semibold">@(Model.Sum(x => x.quantity_available).ToString("0.##"))</p></div><div class="rounded-2xl border bg-white p-5"><p class="text-sm text-gray-500">Pendientes de reposición</p><p class="mt-2 text-3xl font-semibold @(lowStock > 0 ? "text-amber-600" : "text-green-600")">@lowStock</p></div></div>
+    <form method="get" class="flex gap-3"><input name="search" value="@ViewBag.Search" placeholder="Buscar por producto o categoría" class="w-full max-w-md rounded-lg border px-3 py-2"><button class="rounded-lg border px-4 py-2">Buscar</button></form>
+    <section class="overflow-x-auto rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[.03]"><table class="min-w-full text-sm"><thead class="border-b bg-gray-50 text-left text-gray-500 dark:bg-white/[.02]"><tr><th class="p-4">Producto</th><th class="p-4">Categoría</th><th class="p-4">Disponible</th><th class="p-4">Mínimo</th><th class="p-4">Estado</th></tr></thead><tbody>@foreach (var item in Model) { var needsRestock = item.quantity_available <= item.minimum_stock; <tr class="border-b"><td class="p-4 font-medium">@item.name</td><td class="p-4">@item.category_name</td><td class="p-4">@(item.quantity_available.ToString("0.##")) @item.unit_name</td><td class="p-4">@(item.minimum_stock.ToString("0.##"))</td><td class="p-4"><span class="rounded-full px-2.5 py-1 text-xs @(needsRestock ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700")">@(needsRestock ? "Reponer" : "Disponible")</span></td></tr> } @if (!Model.Any()) { <tr><td colspan="5" class="p-8 text-center text-gray-500">No hay existencias registradas para mostrar.</td></tr> }</tbody></table></section>
 </div>
-@section Scripts { <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script><script>document.querySelectorAll('.delete-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();Swal.fire({title:'¿Eliminar producto?',text:'Se desactivará y dejará de aparecer en las listas.',icon:'warning',showCancelButton:true,confirmButtonText:'Sí, eliminar',cancelButtonText:'Cancelar'}).then(r=>{if(r.isConfirmed)f.submit()})}))</script> }
