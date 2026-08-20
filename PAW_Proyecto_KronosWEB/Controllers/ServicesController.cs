@@ -8,4 +8,7 @@ public class ServicesController : Controller
 {
     [HttpGet]
     public IActionResult Index() => View();
+
+    [HttpGet]
+    public IActionResult EquipmentLoans() => View();
 }

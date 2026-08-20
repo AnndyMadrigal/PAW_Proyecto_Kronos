@@ -7,6 +7,7 @@ public class ServiceDefinitionRequestModel
     public string? description { get; set; }
     public bool is_billable { get; set; }
     public decimal? default_price { get; set; }
+    public string operational_route { get; set; } = "standard";
 }
 
 public class ServiceDefinitionResponseModel
@@ -17,6 +18,49 @@ public class ServiceDefinitionResponseModel
     public bool is_billable { get; set; }
     public decimal? default_price { get; set; }
     public bool is_active { get; set; }
+    public string operational_route { get; set; } = "standard";
+}
+
+public class ServiceEventInventoryUsageRequestModel
+{
+    public int inventory_item_id { get; set; }
+    public int location_id { get; set; }
+    public decimal quantity_used { get; set; }
+    public string? notes { get; set; }
+}
+
+public class EquipmentLoanRequestModel
+{
+    public int patient_id { get; set; }
+    public int inventory_item_id { get; set; }
+    public int location_id { get; set; }
+    public string loan_type { get; set; } = "loan";
+    public DateTime loaned_at { get; set; }
+    public DateTime? expected_return_at { get; set; }
+    public decimal? amount { get; set; }
+    public string? notes { get; set; }
+}
+
+public class EquipmentLoanResponseModel
+{
+    public int id { get; set; }
+    public string patient_name { get; set; } = string.Empty;
+    public string equipment_name { get; set; } = string.Empty;
+    public string location_name { get; set; } = string.Empty;
+    public string loan_type { get; set; } = string.Empty;
+    public DateTime loaned_at { get; set; }
+    public DateTime? expected_return_at { get; set; }
+    public DateTime? returned_at { get; set; }
+    public decimal? amount { get; set; }
+    public string status { get; set; } = string.Empty;
+    public string? notes { get; set; }
+}
+
+public class EquipmentLoanReferenceDataModel
+{
+    public List<ServiceReferenceOptionModel> patients { get; set; } = [];
+    public List<ServiceReferenceOptionModel> equipment { get; set; } = [];
+    public List<ServiceReferenceOptionModel> locations { get; set; } = [];
 }
 
 public class ServiceEventNoteRequestModel

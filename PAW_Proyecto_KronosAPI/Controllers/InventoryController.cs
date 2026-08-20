@@ -33,7 +33,7 @@ public class InventoryController(IConfiguration config, IHelpersService helpers)
     [HttpGet("References")]
     public IActionResult References() { using var c=Connection(); using var m=c.QueryMultiple("inventory_sp_reference_data_get", commandType:System.Data.CommandType.StoredProcedure); return Ok(new InventoryReferenceDataModel { categories=m.Read<CatalogItemResponseModel>().ToList(), units=m.Read<CatalogItemResponseModel>().ToList(), locations=m.Read<CatalogItemResponseModel>().ToList() }); }
     [HttpPost("Items")]
-    public IActionResult CreateItem(InventoryItemRequestModel model) { if(string.IsNullOrWhiteSpace(model.name)||model.minimum_stock<0) return BadRequest("Nombre y stock mínimo válidos son requeridos."); using var c=Connection(); return Ok(c.QueryFirst("inventory_sp_item_save", new { model.id, model.inventory_category_id, model.inventory_unit_id, model.name, model.description, model.minimum_stock, model.requires_expiration_date }, commandType:System.Data.CommandType.StoredProcedure)); }
+    public IActionResult CreateItem(InventoryItemRequestModel model) { if(string.IsNullOrWhiteSpace(model.name)||model.minimum_stock<0) return BadRequest("Nombre y stock mínimo válidos son requeridos."); using var c=Connection(); return Ok(c.QueryFirst("inventory_sp_item_save", new { id = model.id is > 0 ? model.id : null, model.inventory_category_id, model.inventory_unit_id, model.name, model.description, model.minimum_stock, model.requires_expiration_date }, commandType:System.Data.CommandType.StoredProcedure)); }
     [HttpPut("Items/{id:int}")]
     public IActionResult UpdateItem(int id, InventoryItemRequestModel model) { model.id=id; return CreateItem(model); }
     [HttpDelete("Items/{id:int}")]

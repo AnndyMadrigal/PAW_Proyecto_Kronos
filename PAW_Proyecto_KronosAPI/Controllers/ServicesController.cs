@@ -68,6 +68,39 @@ public class ServicesController(IConfiguration config, IHelpersService helpers) 
         }, commandType: System.Data.CommandType.StoredProcedure));
     }
 
+    [HttpPost("Events/{serviceEventId:int}/InventoryUsage")]
+    public IActionResult RegisterInventoryUsage(int serviceEventId, ServiceEventInventoryUsageRequestModel model)
+    {
+        if (model.inventory_item_id <= 0 || model.location_id <= 0 || model.quantity_used <= 0)
+            return BadRequest("Seleccione el producto, la ubicación y una cantidad válida.");
+        using var c = Connection();
+        return Ok(c.QueryFirst("service_sp_event_inventory_usage_add", new
+        {
+            service_event_id = serviceEventId,
+            model.inventory_item_id,
+            model.location_id,
+            model.quantity_used,
+            model.notes,
+            created_by_user_id = helpers.ObtenerConsecutivoToken()
+        }, commandType: System.Data.CommandType.StoredProcedure));
+    }
+
+    [HttpGet("EquipmentLoans")]
+    public IActionResult EquipmentLoans() { using var c = Connection(); return Ok(c.Query<EquipmentLoanResponseModel>("service_sp_equipment_loans_list", commandType: System.Data.CommandType.StoredProcedure)); }
+
+    [HttpGet("EquipmentLoans/References")]
+    public IActionResult EquipmentLoanReferences() { using var c = Connection(); using var r = c.QueryMultiple("service_sp_equipment_loan_reference_data_get", commandType: System.Data.CommandType.StoredProcedure); return Ok(new EquipmentLoanReferenceDataModel { patients = r.Read<ServiceReferenceOptionModel>().ToList(), equipment = r.Read<ServiceReferenceOptionModel>().ToList(), locations = r.Read<ServiceReferenceOptionModel>().ToList() }); }
+
+    [HttpPost("EquipmentLoans")]
+    public IActionResult CreateEquipmentLoan(EquipmentLoanRequestModel model)
+    {
+        if (model.patient_id <= 0 || model.inventory_item_id <= 0 || model.location_id <= 0) return BadRequest("Seleccione el paciente, el equipo y la ubicación.");
+        using var c = Connection(); return Ok(c.QueryFirst("service_sp_equipment_loan_create", new { model.patient_id, model.inventory_item_id, model.location_id, model.loan_type, model.loaned_at, model.expected_return_at, model.amount, model.notes, created_by_user_id = helpers.ObtenerConsecutivoToken() }, commandType: System.Data.CommandType.StoredProcedure));
+    }
+
+    [HttpPost("EquipmentLoans/{id:int}/Return")]
+    public IActionResult ReturnEquipmentLoan(int id, string? notes) { using var c = Connection(); return Ok(c.QueryFirst("service_sp_equipment_loan_return", new { id, notes, returned_by_user_id = helpers.ObtenerConsecutivoToken() }, commandType: System.Data.CommandType.StoredProcedure)); }
+
     private IActionResult Save(ServiceDefinitionRequestModel model)
     {
         if (string.IsNullOrWhiteSpace(model.name)) return BadRequest("El nombre del servicio es requerido.");

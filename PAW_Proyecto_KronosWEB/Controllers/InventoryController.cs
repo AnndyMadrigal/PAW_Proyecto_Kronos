@@ -29,6 +29,7 @@ public class InventoryController(IHttpClientFactory http, IConfiguration config)
     }
 
     [HttpGet] public async Task<IActionResult> Crear() => View("Editar", await LoadReferences(new InventoryItemViewModel()));
+    [HttpGet] public IActionResult Movimientos() => View();
     [HttpGet]
     public async Task<IActionResult> Editar(int id)
     {

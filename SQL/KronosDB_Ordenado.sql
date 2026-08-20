@@ -232,6 +232,153 @@ BEGIN
 END
 GO
 
+/* Definiciones operativas pospuestas: el bloque efectivo se agrega después de las tablas.
+IF COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL
+BEGIN
+    ALTER TABLE dbo.service_tbl_services ADD operational_route nvarchar(30) NOT NULL CONSTRAINT df_service_tbl_services_operational_route DEFAULT N'standard'
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.service_sp_services_list AS
+BEGIN
+    SET NOCOUNT ON
+    SELECT id, name, description, is_billable, default_price, is_active,
+           COALESCE(NULLIF(operational_route, N''), CASE WHEN name LIKE N'%consulta%' THEN N'appointments' WHEN name LIKE N'%signos vitales%' THEN N'clinical_record' WHEN name LIKE N'%equipo%' THEN N'inventory' ELSE N'standard' END) AS operational_route
+    FROM dbo.service_tbl_services WHERE deleted = 0 ORDER BY is_active DESC, name
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.service_sp_service_save
+    @id int = NULL, @name nvarchar(150), @description nvarchar(500) = NULL, @is_billable bit = 0, @default_price decimal(18,2) = NULL, @operational_route nvarchar(30) = N'standard'
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET @operational_route = CASE WHEN @operational_route IN (N'appointments', N'clinical_record', N'inventory', N'standard') THEN @operational_route ELSE N'standard' END
+    IF @id IS NULL OR @id = 0
+    BEGIN
+        INSERT dbo.service_tbl_services(name, description, is_billable, default_price, operational_route, is_active, deleted, created_at) VALUES(@name, NULLIF(LTRIM(RTRIM(@description)), N''), @is_billable, CASE WHEN @is_billable = 1 THEN @default_price ELSE NULL END, @operational_route, 1, 0, SYSDATETIME())
+        SET @id = SCOPE_IDENTITY()
+    END
+    ELSE
+    BEGIN
+        UPDATE dbo.service_tbl_services SET name = @name, description = NULLIF(LTRIM(RTRIM(@description)), N''), is_billable = @is_billable, default_price = CASE WHEN @is_billable = 1 THEN @default_price ELSE NULL END, operational_route = @operational_route, updated_at = SYSDATETIME() WHERE id = @id AND deleted = 0
+        IF @@ROWCOUNT = 0 THROW 50040, N'El servicio indicado no existe.', 1
+    END
+    SELECT CAST(1 AS bit) AS success, @id AS id
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.service_sp_event_inventory_usage_add
+    @service_event_id int, @inventory_item_id int, @location_id int, @quantity_used decimal(18,4), @notes nvarchar(max) = NULL, @created_by_user_id int
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET XACT_ABORT ON
+    BEGIN TRANSACTION
+    DECLARE @inventory_batch_id int, @movement_type_id int, @source_type_id int
+    IF @quantity_used <= 0 THROW 50044, N'La cantidad utilizada debe ser mayor que cero.', 1
+    IF NOT EXISTS (SELECT 1 FROM dbo.service_tbl_events WHERE id = @service_event_id AND deleted = 0) THROW 50045, N'La cita indicada no existe.', 1
+    SELECT TOP (1) @inventory_batch_id = id FROM dbo.inventory_tbl_batches WHERE inventory_item_id = @inventory_item_id AND location_id = @location_id AND deleted = 0 AND is_active = 1 AND quantity_available >= @quantity_used ORDER BY expiration_date, id
+    IF @inventory_batch_id IS NULL THROW 50046, N'No hay existencias suficientes del producto seleccionado en la ubicación indicada.', 1
+    SELECT TOP (1) @movement_type_id = ci.id FROM dbo.config_tbl_catalog_items ci INNER JOIN dbo.config_tbl_catalogs c ON c.id = ci.catalog_id WHERE c.name = N'inventory_movement_type' AND ci.value = N'exit' AND ci.is_active = 1
+    SELECT TOP (1) @source_type_id = ci.id FROM dbo.config_tbl_catalog_items ci INNER JOIN dbo.config_tbl_catalogs c ON c.id = ci.catalog_id WHERE c.name = N'inventory_source_type' AND ci.is_active = 1 ORDER BY ci.sort_order, ci.id
+    UPDATE dbo.inventory_tbl_batches SET quantity_available = quantity_available - @quantity_used, updated_at = SYSDATETIME() WHERE id = @inventory_batch_id
+    INSERT dbo.inventory_tbl_movements(inventory_item_id, inventory_batch_id, location_id, movement_type_id, source_type_id, quantity, unit_cost, total_cost, movement_date, notes, created_by_user_id, created_at) SELECT @inventory_item_id, @inventory_batch_id, @location_id, @movement_type_id, @source_type_id, -@quantity_used, b.unit_cost, b.unit_cost * @quantity_used, SYSDATETIME(), @notes, @created_by_user_id, SYSDATETIME() FROM dbo.inventory_tbl_batches b WHERE b.id = @inventory_batch_id
+    INSERT dbo.service_tbl_event_inventory_usage(service_event_id, inventory_item_id, inventory_batch_id, quantity_used, notes, created_by_user_id, created_at) VALUES(@service_event_id, @inventory_item_id, @inventory_batch_id, @quantity_used, @notes, @created_by_user_id, SYSDATETIME())
+    COMMIT TRANSACTION
+    SELECT CAST(1 AS bit) AS success, @inventory_batch_id AS inventory_batch_id
+END
+GO
+
+/* BLOQUE POSPUESTO: estas definiciones se ejecutan al final del archivo, después de crear las tablas.
+IF COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL
+BEGIN
+    ALTER TABLE dbo.service_tbl_services ADD operational_route nvarchar(30) NOT NULL CONSTRAINT df_service_tbl_services_operational_route DEFAULT N'standard'
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.service_sp_services_list AS
+BEGIN
+    SET NOCOUNT ON
+    SELECT id, name, description, is_billable, default_price, is_active,
+           COALESCE(NULLIF(operational_route, N''), CASE WHEN name LIKE N'%consulta%' THEN N'appointments' WHEN name LIKE N'%signos vitales%' THEN N'clinical_record' WHEN name LIKE N'%equipo%' THEN N'inventory' ELSE N'standard' END) AS operational_route
+    FROM dbo.service_tbl_services
+    WHERE deleted = 0
+    ORDER BY is_active DESC, name
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.service_sp_service_save
+    @id int = NULL, @name nvarchar(150), @description nvarchar(500) = NULL, @is_billable bit = 0, @default_price decimal(18,2) = NULL, @operational_route nvarchar(30) = N'standard'
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET @operational_route = CASE WHEN @operational_route IN (N'appointments', N'clinical_record', N'inventory', N'standard') THEN @operational_route ELSE N'standard' END
+    IF @id IS NULL OR @id = 0
+    BEGIN
+        INSERT dbo.service_tbl_services(name, description, is_billable, default_price, operational_route, is_active, deleted, created_at)
+        VALUES(@name, NULLIF(LTRIM(RTRIM(@description)), N''), @is_billable, CASE WHEN @is_billable = 1 THEN @default_price ELSE NULL END, @operational_route, 1, 0, SYSDATETIME())
+        SET @id = SCOPE_IDENTITY()
+    END
+    ELSE
+    BEGIN
+        UPDATE dbo.service_tbl_services SET name = @name, description = NULLIF(LTRIM(RTRIM(@description)), N''), is_billable = @is_billable, default_price = CASE WHEN @is_billable = 1 THEN @default_price ELSE NULL END, operational_route = @operational_route, updated_at = SYSDATETIME() WHERE id = @id AND deleted = 0
+        IF @@ROWCOUNT = 0 THROW 50040, N'El servicio indicado no existe.', 1
+    END
+    SELECT CAST(1 AS bit) AS success, @id AS id
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.inventory_sp_movement_register
+    @movement_type nvarchar(20), @inventory_item_id int, @location_id int, @inventory_batch_id int = NULL, @quantity decimal(18,4), @batch_number nvarchar(100) = NULL, @expiration_date date = NULL, @unit_cost decimal(18,2) = NULL, @notes nvarchar(max) = NULL, @created_by_user_id int
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET XACT_ABORT ON
+    BEGIN TRANSACTION
+    DECLARE @movement_type_id int, @source_type_id int, @signed decimal(18,4)
+    IF @movement_type NOT IN (N'entry', N'exit', N'adjustment') OR @quantity <= 0 THROW 50041, N'El tipo y la cantidad del movimiento son requeridos.', 1
+    SELECT TOP (1) @movement_type_id = ci.id FROM dbo.config_tbl_catalog_items ci INNER JOIN dbo.config_tbl_catalogs c ON c.id = ci.catalog_id WHERE c.name = N'inventory_movement_type' AND ci.value = @movement_type AND ci.is_active = 1
+    SELECT TOP (1) @source_type_id = ci.id FROM dbo.config_tbl_catalog_items ci INNER JOIN dbo.config_tbl_catalogs c ON c.id = ci.catalog_id WHERE c.name = N'inventory_source_type' AND ci.is_active = 1 ORDER BY ci.sort_order, ci.id
+    IF @movement_type_id IS NULL OR @source_type_id IS NULL THROW 50042, N'Los catálogos de inventario no están configurados.', 1
+    IF @movement_type = N'exit' AND @inventory_batch_id IS NULL SELECT TOP (1) @inventory_batch_id = id FROM dbo.inventory_tbl_batches WHERE inventory_item_id = @inventory_item_id AND location_id = @location_id AND deleted = 0 AND is_active = 1 AND quantity_available >= @quantity ORDER BY expiration_date, id
+    IF @inventory_batch_id IS NULL AND @movement_type <> N'exit'
+    BEGIN
+        INSERT dbo.inventory_tbl_batches(inventory_item_id, location_id, batch_number, expiration_date, unit_cost, quantity_initial, quantity_available, is_active, deleted, created_at) VALUES(@inventory_item_id, @location_id, NULLIF(LTRIM(RTRIM(@batch_number)), N''), @expiration_date, @unit_cost, @quantity, @quantity, 1, 0, SYSDATETIME())
+        SET @inventory_batch_id = SCOPE_IDENTITY()
+    END
+    IF @inventory_batch_id IS NULL THROW 50043, N'No hay existencias suficientes para registrar la salida.', 1
+    SET @signed = CASE WHEN @movement_type = N'exit' THEN -@quantity ELSE @quantity END
+    UPDATE dbo.inventory_tbl_batches SET quantity_available = quantity_available + @signed, updated_at = SYSDATETIME() WHERE id = @inventory_batch_id AND deleted = 0
+    INSERT dbo.inventory_tbl_movements(inventory_item_id, inventory_batch_id, location_id, movement_type_id, source_type_id, quantity, unit_cost, total_cost, movement_date, notes, created_by_user_id, created_at) VALUES(@inventory_item_id, @inventory_batch_id, @location_id, @movement_type_id, @source_type_id, @signed, @unit_cost, COALESCE(@unit_cost, 0) * @quantity, SYSDATETIME(), @notes, @created_by_user_id, SYSDATETIME())
+    COMMIT TRANSACTION
+    SELECT CAST(1 AS bit) AS success, @inventory_batch_id AS inventory_batch_id
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.service_sp_event_inventory_usage_add
+    @service_event_id int, @inventory_item_id int, @location_id int, @quantity_used decimal(18,4), @notes nvarchar(max) = NULL, @created_by_user_id int
+AS
+BEGIN
+    SET NOCOUNT ON
+    SET XACT_ABORT ON
+    BEGIN TRANSACTION
+    DECLARE @inventory_batch_id int, @movement_type_id int, @source_type_id int
+    IF @quantity_used <= 0 THROW 50044, N'La cantidad utilizada debe ser mayor que cero.', 1
+    IF NOT EXISTS (SELECT 1 FROM dbo.service_tbl_events WHERE id = @service_event_id AND deleted = 0) THROW 50045, N'La cita indicada no existe.', 1
+    SELECT TOP (1) @inventory_batch_id = id FROM dbo.inventory_tbl_batches WHERE inventory_item_id = @inventory_item_id AND location_id = @location_id AND deleted = 0 AND is_active = 1 AND quantity_available >= @quantity_used ORDER BY expiration_date, id
+    IF @inventory_batch_id IS NULL THROW 50046, N'No hay existencias suficientes del producto seleccionado en la ubicación indicada.', 1
+    SELECT TOP (1) @movement_type_id = ci.id FROM dbo.config_tbl_catalog_items ci INNER JOIN dbo.config_tbl_catalogs c ON c.id = ci.catalog_id WHERE c.name = N'inventory_movement_type' AND ci.value = N'exit' AND ci.is_active = 1
+    SELECT TOP (1) @source_type_id = ci.id FROM dbo.config_tbl_catalog_items ci INNER JOIN dbo.config_tbl_catalogs c ON c.id = ci.catalog_id WHERE c.name = N'inventory_source_type' AND ci.is_active = 1 ORDER BY ci.sort_order, ci.id
+    UPDATE dbo.inventory_tbl_batches SET quantity_available = quantity_available - @quantity_used, updated_at = SYSDATETIME() WHERE id = @inventory_batch_id
+    INSERT dbo.inventory_tbl_movements(inventory_item_id, inventory_batch_id, location_id, movement_type_id, source_type_id, quantity, unit_cost, total_cost, movement_date, notes, created_by_user_id, created_at) SELECT @inventory_item_id, @inventory_batch_id, @location_id, @movement_type_id, @source_type_id, -@quantity_used, b.unit_cost, b.unit_cost * @quantity_used, SYSDATETIME(), @notes, @created_by_user_id, SYSDATETIME() FROM dbo.inventory_tbl_batches b WHERE b.id = @inventory_batch_id
+    INSERT dbo.service_tbl_event_inventory_usage(service_event_id, inventory_item_id, inventory_batch_id, quantity_used, notes, created_by_user_id, created_at) VALUES(@service_event_id, @inventory_item_id, @inventory_batch_id, @quantity_used, @notes, @created_by_user_id, SYSDATETIME())
+    COMMIT TRANSACTION
+    SELECT CAST(1 AS bit) AS success, @inventory_batch_id AS inventory_batch_id
+END
+GO
+*/
+
 /*
 -------------------------------------------------------------------------------
 -- EXPEDIENTES CLÍNICOS: implementación funcional de los contratos consumidos
@@ -8368,7 +8515,7 @@ CREATE OR ALTER PROCEDURE dbo.inventory_sp_item_save
  @id int=NULL,@inventory_category_id int,@inventory_unit_id int,@name nvarchar(200),@description nvarchar(500)=NULL,@minimum_stock decimal(18,4),@requires_expiration_date bit
 AS BEGIN
  SET NOCOUNT ON
- IF @id IS NULL BEGIN INSERT inventory_tbl_items(inventory_category_id,inventory_unit_id,name,description,minimum_stock,requires_expiration_date,is_active,deleted,created_at) VALUES(@inventory_category_id,@inventory_unit_id,@name,@description,@minimum_stock,@requires_expiration_date,1,0,SYSDATETIME()) SET @id=SCOPE_IDENTITY() END
+ IF @id IS NULL OR @id = 0 BEGIN INSERT inventory_tbl_items(inventory_category_id,inventory_unit_id,name,description,minimum_stock,requires_expiration_date,is_active,deleted,created_at) VALUES(@inventory_category_id,@inventory_unit_id,@name,@description,@minimum_stock,@requires_expiration_date,1,0,SYSDATETIME()) SET @id=SCOPE_IDENTITY() END
  ELSE UPDATE inventory_tbl_items SET inventory_category_id=@inventory_category_id,inventory_unit_id=@inventory_unit_id,name=@name,description=@description,minimum_stock=@minimum_stock,requires_expiration_date=@requires_expiration_date,updated_at=SYSDATETIME() WHERE id=@id AND deleted=0
  SELECT CAST(1 AS bit) success,@id id
 END
@@ -8818,5 +8965,23 @@ BEGIN
         COMMIT TRANSACTION
     END
     SELECT CAST(1 AS bit) success, CAST(0 AS bit) requires_confirmation, N'Perfil actualizado correctamente.' message, @pending_appointment_count pending_appointment_count, @role_changed role_changed, @status_changed status_changed, @email email, @full_name full_name, @new_role_name role_name, @is_active is_active
+END
+GO
+
+IF COL_LENGTH(N'dbo.service_tbl_services', N'operational_route') IS NULL ALTER TABLE dbo.service_tbl_services ADD operational_route nvarchar(30) NOT NULL CONSTRAINT df_service_tbl_services_operational_route DEFAULT N'standard'
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_services_list AS
+BEGIN
+ SET NOCOUNT ON
+ SELECT id,name,description,is_billable,default_price,is_active,COALESCE(NULLIF(operational_route,N''),CASE WHEN name LIKE N'%consulta%' THEN N'appointments' WHEN name LIKE N'%signos vitales%' THEN N'clinical_record' WHEN name LIKE N'%equipo%' THEN N'inventory' ELSE N'standard' END) operational_route FROM dbo.service_tbl_services WHERE deleted=0 ORDER BY is_active DESC,name
+END
+GO
+CREATE OR ALTER PROCEDURE dbo.service_sp_service_save @id int=NULL,@name nvarchar(150),@description nvarchar(500)=NULL,@is_billable bit=0,@default_price decimal(18,2)=NULL,@operational_route nvarchar(30)=N'standard' AS
+BEGIN
+ SET NOCOUNT ON
+ SET @operational_route=CASE WHEN @operational_route IN(N'appointments',N'clinical_record',N'inventory',N'standard') THEN @operational_route ELSE N'standard' END
+ IF @id IS NULL OR @id=0 BEGIN INSERT dbo.service_tbl_services(name,description,is_billable,default_price,operational_route,is_active,deleted,created_at) VALUES(@name,@description,@is_billable,CASE WHEN @is_billable=1 THEN @default_price ELSE NULL END,@operational_route,1,0,SYSDATETIME()) SET @id=SCOPE_IDENTITY() END
+ ELSE BEGIN UPDATE dbo.service_tbl_services SET name=@name,description=@description,is_billable=@is_billable,default_price=CASE WHEN @is_billable=1 THEN @default_price ELSE NULL END,operational_route=@operational_route,updated_at=SYSDATETIME() WHERE id=@id AND deleted=0 IF @@ROWCOUNT=0 THROW 50040,N'El servicio indicado no existe.',1 END
+ SELECT CAST(1 AS bit) success,@id id
 END
 GO
