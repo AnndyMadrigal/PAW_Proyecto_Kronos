@@ -27,29 +27,43 @@
                 <img src="~/img/logo/iconKronos.png" alt="Kronos" class="h-11 w-11 object-contain" />
                 <span class="text-xl font-bold text-brand-500">KRONOS</span>
             </div>
-            <nav class="flex-1 p-4 space-y-1">
-                <a asp-controller="Home" asp-action="Index"
-                   class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
-                     Dashboard
-                </a>
-                <a asp-controller="Citas" asp-action="Index"
-                   class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
-                     Citas
-                </a>
-                <a asp-controller="Expedientes" asp-action="Index"
-                   class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
-                     Expedientes
-                </a>
-                <a asp-controller="Home" asp-action="Login"
-                   class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
-                    Inventario
-                </a>
+            <nav class="flex-1 space-y-5 overflow-y-auto p-4">
+                <section>
+                    <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Inicio</p>
+                    <a asp-controller="Home" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Dashboard</a>
+                </section>
+
+                <section x-data="{ open: @((ViewContext.RouteData.Values["controller"]?.ToString() == "Citas").ToString().ToLower()) }">
+                    <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Atención y expedientes</p>
+                    <button type="button" @@click="open = !open" class="flex w-full items-center justify-between rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"><span>Citas y agenda</span><span class="text-xs transition-transform" :class="{ 'rotate-180': open }">⌄</span></button>
+                    <div x-show="open" class="ml-3 border-l border-gray-200 pl-3 dark:border-gray-700">
+                        <a asp-controller="Citas" asp-action="Index" class="mt-1 block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">Calendario mensual</a>
+                        <a asp-controller="Citas" asp-action="Agenda" class="mt-1 block rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5">Listado de citas</a>
+                    </div>
+                    <a asp-controller="Patients" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Pacientes</a>
+                    <a asp-controller="Expedientes" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Expedientes médicos</a>
+                </section>
+
+                <section>
+                    <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Operación</p>
+                    <a asp-controller="Services" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Servicios y atención</a>
+                    <a asp-controller="Staff" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Personal</a>
+                    <a asp-controller="Inventory" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Inventario</a>
+                </section>
+
+                <section>
+                    <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Gestión</p>
+                    <a asp-controller="Financial" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Finanzas</a>
+                    <a asp-controller="Reports" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Reportes</a>
+                </section>
+
                 @if (string.Equals(roleName, "Administrador", StringComparison.OrdinalIgnoreCase))
                 {
-                    <a asp-controller="Users" asp-action="Index"
-                       class="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
-                         Usuarios
-                    </a>
+                    <section>
+                        <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Administración</p>
+                        <a asp-controller="Catalogs" asp-action="Index" class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Catálogos operativos</a>
+                        <a asp-controller="Users" asp-action="Index" class="mt-1 block rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">Usuarios y perfiles</a>
+                    </section>
                 }
             </nav>
         </aside>

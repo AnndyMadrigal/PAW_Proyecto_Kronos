@@ -19,7 +19,7 @@ namespace PAW_Proyecto_Kronos.Controllers
         [HttpGet]
         public IActionResult Inventory()
         {
-            return View();
+            return RedirectToAction("Index", "Inventory");
         }
 
     }

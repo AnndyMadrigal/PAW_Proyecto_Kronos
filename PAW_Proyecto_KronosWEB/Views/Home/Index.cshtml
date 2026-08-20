@@ -1,372 +1,165 @@
-﻿<!-- [INVENTARIO] Inyectar configuración para URL de la API -->
 @inject IConfiguration Configuration
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Inicio";
 }
 
-<div class="p-6">
-    <!-- Header -->
-    <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+<div class="p-6" x-data="homeModule()" x-init="load()">
+    <section class="rounded-2xl bg-brand-500 p-6 text-white shadow-theme-sm">
+        <div class="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+            <div class="max-w-3xl">
+                <p class="text-sm font-medium text-white/75">Asociación de Cuidados Paliativos</p>
+                <h1 class="mt-2 text-2xl font-semibold">Kronos: atención y gestión en un solo lugar</h1>
+                <p class="mt-3 text-sm leading-6 text-white/85">
+                    Organiza la atención de pacientes, las citas, los expedientes, los recursos y la gestión administrativa
+                    de la Asociación para que el equipo pueda dar seguimiento oportuno a cada necesidad.
+                </p>
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <a asp-controller="Citas" asp-action="Agenda"
+                   class="inline-flex items-center justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-brand-600 shadow-theme-xs hover:bg-gray-50">
+                    Ver agenda de hoy
+                </a>
+                <a asp-controller="Citas" asp-action="Crear"
+                   class="inline-flex items-center justify-center rounded-lg border border-white/50 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10">
+                    Registrar cita
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="mt-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
-                Sistema de Gestión Kronos
-            </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Panel general para gestionar la operación interna de la empresa: finanzas, facturación, inventario, usuarios y reportes.
-            </p>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Panorama operativo</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Información actual obtenida de los módulos de citas, finanzas e inventario.</p>
         </div>
+        <p x-show="loading" class="text-sm text-gray-500 dark:text-gray-400">Actualizando información…</p>
+    </div>
+    <p x-show="error" x-text="error" class="mt-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300"></p>
 
-        <div class="flex flex-col gap-3 sm:flex-row">
-            <a href="#"
-               class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]">
-                Ver reportes
-            </a>
-
-            <a href="#"
-               class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
-                Nuevo registro
-            </a>
-        </div>
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Citas programadas</p>
+            <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="appointments.scheduled ?? '—'"></p>
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">De <span x-text="appointments.total ?? 0"></span> citas registradas.</p>
+        </article>
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Citas completadas</p>
+            <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="appointments.completed ?? '—'"></p>
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Atenciones marcadas como realizadas.</p>
+        </article>
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Balance financiero</p>
+            <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="money(financial.balance)"></p>
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Ingresos menos gastos registrados.</p>
+        </article>
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Insumos con stock bajo</p>
+            <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="lowStock.length"></p>
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Productos que requieren revisión de abastecimiento.</p>
+        </article>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Facturación mensual</p>
-            <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">$48,250.00</h4>
-            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">128 facturas emitidas este mes</p>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Inventario disponible</p>
-            <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">8,430</h4>
-            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">17 productos bajo mínimo</p>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Usuarios activos</p>
-            <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">156</h4>
-            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">12 roles configurados</p>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Reportes generados</p>
-            <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">42</h4>
-            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">Indicadores operativos actualizados</p>
-        </div>
-    </div>
-
-    <!-- Main Content -->
     <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <!-- Modules -->
-        <div class="xl:col-span-2">
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    Módulos principales
-                </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Accesos rápidos a las áreas funcionales del sistema.
-                </p>
+        <section class="xl:col-span-2 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">¿Qué necesita gestionar?</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Accesos a las áreas que respaldan la atención paliativa y la operación de la Asociación.</p>
 
-                <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <a href="#" class="rounded-2xl border border-gray-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Administración</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Gestión de información interna, áreas, configuraciones generales y parámetros del sistema.
-                        </p>
-                    </a>
-
-                    <a href="#" class="rounded-2xl border border-gray-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Finanzas</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Control de ingresos, egresos, cuentas por cobrar, cuentas por pagar y flujo operativo.
-                        </p>
-                    </a>
-
-                    <a href="#" class="rounded-2xl border border-gray-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Facturación</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Emisión, consulta y seguimiento de facturas, pagos, vencimientos y estados de cobro.
-                        </p>
-                    </a>
-
-                    <a href="#" class="rounded-2xl border border-gray-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Inventario</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Control de productos, existencias, entradas, salidas, mínimos y alertas de abastecimiento.
-                        </p>
-                    </a>
-
-                    <a href="#" class="rounded-2xl border border-gray-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Usuarios y permisos</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Administración de usuarios, roles, permisos, accesos y seguridad del sistema.
-                        </p>
-                    </a>
-
-                    <a href="#" class="rounded-2xl border border-gray-200 p-5 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Reportes</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Visualización de indicadores financieros, operativos, inventario, ventas y actividad interna.
-                        </p>
-                    </a>
-                </div>
+            <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <a asp-controller="Citas" asp-action="Index" class="rounded-xl border border-gray-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
+                    <h3 class="font-semibold text-gray-800 dark:text-white/90">Agenda y citas</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Planifique visitas, consulte el calendario y dé seguimiento a las atenciones programadas.</p>
+                </a>
+                <a asp-controller="Services" asp-action="Index" class="rounded-xl border border-gray-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
+                    <h3 class="font-semibold text-gray-800 dark:text-white/90">Atención y expedientes</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Registre y consulte la información que respalda el cuidado de cada paciente.</p>
+                </a>
+                <a asp-controller="Home" asp-action="Inventory" class="rounded-xl border border-gray-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
+                    <h3 class="font-semibold text-gray-800 dark:text-white/90">Insumos e inventario</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Controle existencias, entradas, salidas y necesidades de reposición.</p>
+                </a>
+                <a asp-controller="Financial" asp-action="Index" class="rounded-xl border border-gray-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/5">
+                    <h3 class="font-semibold text-gray-800 dark:text-white/90">Gestión financiera</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Registre ingresos y gastos para apoyar el control administrativo de la Asociación.</p>
+                </a>
             </div>
-        </div>
+        </section>
 
-        <!-- Right Column -->
-        <div class="space-y-6">
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    Resumen operativo
-                </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Estado general de la operación interna.
-                </p>
-
-                <div class="mt-5 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Ingresos</span>
-                        <span class="text-sm font-semibold text-gray-800 dark:text-white/90">$48,250.00</span>
+        <aside class="space-y-6">
+            <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Atención prioritaria</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Alertas reales de inventario para revisar antes de afectar una atención.</p>
                     </div>
-
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Egresos</span>
-                        <span class="text-sm font-semibold text-gray-800 dark:text-white/90">$19,430.00</span>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Facturas vencidas</span>
-                        <span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 dark:bg-red-500/10">
-                            18
-                        </span>
-                    </div>
-
-                    <div class="border-t border-gray-100 pt-4 dark:border-gray-800">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Balance estimado</span>
-                            <span class="text-base font-bold text-green-600">$28,820.00</span>
+                    <a asp-controller="Home" asp-action="Inventory" class="text-sm font-medium text-brand-500 hover:text-brand-600">Ver inventario</a>
+                </div>
+                <div class="mt-5 space-y-3" x-show="!loading">
+                    <template x-if="lowStock.length === 0 && expiringBatches.length === 0">
+                        <p class="rounded-xl bg-green-50 p-4 text-sm text-green-700 dark:bg-green-500/10 dark:text-green-300">No hay alertas de inventario pendientes.</p>
+                    </template>
+                    <template x-if="lowStock.length > 0">
+                        <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/10">
+                            <p class="text-sm font-medium text-orange-700 dark:text-orange-300">Stock por debajo del mínimo</p>
+                            <p class="mt-1 text-sm text-orange-600 dark:text-orange-200"><span x-text="lowStock.length"></span> insumo(s) requieren reposición o revisión.</p>
                         </div>
-                    </div>
+                    </template>
+                    <template x-if="expiringBatches.length > 0">
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
+                            <p class="text-sm font-medium text-red-700 dark:text-red-300">Lotes próximos a vencer</p>
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-200"><span x-text="expiringBatches.length"></span> lote(s) vencen en los próximos 30 días.</p>
+                        </div>
+                    </template>
                 </div>
-            </div>
+            </section>
 
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    Alertas internas
-                </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Pendientes que requieren atención.
-                </p>
-
-                <div class="mt-5 space-y-3">
-                    <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/10">
-                        <p class="text-sm font-medium text-orange-700 dark:text-orange-400">Inventario bajo</p>
-                        <p class="mt-1 text-sm text-orange-600 dark:text-orange-300">
-                            17 productos están por debajo del mínimo configurado.
-                        </p>
-                    </div>
-
-                    <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
-                        <p class="text-sm font-medium text-red-700 dark:text-red-400">Facturas vencidas</p>
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-300">
-                            Hay 18 facturas pendientes con fecha vencida.
-                        </p>
-                    </div>
-
-                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
-                        <p class="text-sm font-medium text-blue-700 dark:text-blue-400">Accesos pendientes</p>
-                        <p class="mt-1 text-sm text-blue-600 dark:text-blue-300">
-                            5 usuarios están pendientes de activación.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Resumen financiero</h2>
+                <dl class="mt-4 space-y-3 text-sm">
+                    <div class="flex items-center justify-between gap-4"><dt class="text-gray-500 dark:text-gray-400">Ingresos</dt><dd class="font-medium text-gray-800 dark:text-white/90" x-text="money(financial.total_income)"></dd></div>
+                    <div class="flex items-center justify-between gap-4"><dt class="text-gray-500 dark:text-gray-400">Gastos</dt><dd class="font-medium text-gray-800 dark:text-white/90" x-text="money(financial.total_expense)"></dd></div>
+                    <div class="flex items-center justify-between gap-4 border-t border-gray-100 pt-3 dark:border-gray-800"><dt class="font-medium text-gray-700 dark:text-gray-300">Balance</dt><dd class="font-semibold text-brand-600 dark:text-brand-400" x-text="money(financial.balance)"></dd></div>
+                </dl>
+                <a asp-controller="Financial" asp-action="Index" class="mt-5 inline-flex text-sm font-medium text-brand-500 hover:text-brand-600">Ir a finanzas</a>
+            </section>
+        </aside>
     </div>
-
-    <!-- [INVENTARIO] Sección con primeros 10 items del inventario -->
-    <!-- Nota: Para revertir, eliminar todo este <div> (líneas 189-209) -->
-    <!-- Los scripts que cargan los datos están al final del archivo -->
-    <div class="mt-6">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                Inventario de insumos
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Listado de productos disponibles en el inventario con sus detalles y stock mínimo.
-            </p>
-
-            <div id="inventoryContainer" class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <div class="flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-8 dark:border-gray-600">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Cargando inventario...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="mt-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Actividad reciente
-        </h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Últimos movimientos registrados dentro del sistema.
-        </p>
-
-        <div class="mt-5 overflow-x-auto">
-            <table class="min-w-full">
-                <thead>
-                    <tr class="border-b border-gray-100 dark:border-gray-800">
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Módulo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actividad</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Usuario</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Estado</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Fecha</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <tr>
-                        <td class="px-4 py-4 text-sm font-medium text-gray-800 dark:text-white/90">Facturación</td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Factura creada y enviada a revisión</td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Admin Kronos</td>
-                        <td class="px-4 py-4">
-                            <span class="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600 dark:bg-green-500/10">
-                                Completado
-                            </span>
-                        </td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Hoy</td>
-                    </tr>
-
-                    <tr>
-                        <td class="px-4 py-4 text-sm font-medium text-gray-800 dark:text-white/90">Inventario</td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Entrada de productos registrada</td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Bodega</td>
-                        <td class="px-4 py-4">
-                            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600 dark:bg-blue-500/10">
-                                Procesado
-                            </span>
-                        </td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Hoy</td>
-                    </tr>
-
-                    <tr>
-                        <td class="px-4 py-4 text-sm font-medium text-gray-800 dark:text-white/90">Usuarios</td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Solicitud de acceso pendiente</td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Soporte</td>
-                        <td class="px-4 py-4">
-                            <span class="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-600 dark:bg-orange-500/10">
-                                Pendiente
-                            </span>
-                        </td>
-                        <td class="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">Ayer</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-            // [INVENTARIO] Cargar primeros 10 items del inventario desde la API
-            // Nota: Para revertir, eliminar todo este <script> (líneas 271-370)
-            document.addEventListener('DOMContentLoaded', function () {
-                loadInventory();
-            });
-
-            // [INVENTARIO] Llama a la API para obtener los items
-            async function loadInventory() {
-                try {
-                    // Obtener el token de la sesión del servidor
-                    const token = '@Context.Session.GetString("Token")';
-                    const apiUrl = '@Configuration["Valores:UrlApi"]' + 'inventory/GetInventoryItems';
-
-                    if (!token) {
-                        throw new Error('No hay sesión activa. Por favor, inicia sesión.');
-                    }
-
-                    console.log('Token:', token.substring(0, 20) + '...');
-                    console.log('API URL:', apiUrl);
-
-                    const response = await fetch(apiUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    console.log('Response status:', response.status);
-                    console.log('Response ok:', response.ok);
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Error response:', errorText);
-                        throw new Error(`Error ${response.status}: ${errorText}`);
-                    }
-
-                    const items = await response.json();
-                    console.log('Items recibidos:', items);
-                    displayInventory(items);
-                } catch (error) {
-                    console.error('Error completo:', error);
-                    document.getElementById('inventoryContainer').innerHTML = `
-                        <div class="col-span-full flex items-center justify-center rounded-xl border-2 border-dashed border-red-300 p-8 dark:border-red-600">
-                            <div class="text-center">
-                                <p class="text-sm text-red-500 dark:text-red-400 font-semibold">Error al cargar el inventario</p>
-                                <p class="text-xs text-red-400 dark:text-red-500 mt-2">${error.message}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Abre la consola del navegador (F12) para más detalles</p>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            // [INVENTARIO] Mostrar solo los primeros 10 items y agregar link a ver más
-            function displayInventory(items) {
-                const container = document.getElementById('inventoryContainer');
-
-                if (!items || items.length === 0) {
-                    container.innerHTML = `
-                        <div class="col-span-full flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-8 dark:border-gray-600">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">No hay items de inventario disponibles</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Mostrar solo los primeros 10 items en el home
-                const limitedItems = items.slice(0, 10);
-
-                container.innerHTML = limitedItems.map(item => `
-                    <div class="rounded-2xl border border-gray-200 bg-white p-4 transition hover:border-brand-300 hover:shadow-sm dark:border-gray-800 dark:hover:border-brand-500/40 dark:hover:bg-white/[0.05]">
-                        <h3 class="font-semibold text-gray-800 dark:text-white/90">
-                            ${item.name}
-                        </h3>
-                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                            ${item.description || 'Sin descripción'}
-                        </p>
-                        <div class="mt-4 flex items-baseline justify-between">
-                            <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Stock mínimo</span>
-                            <span class="text-lg font-bold text-brand-600 dark:text-brand-400">${item.minimum_stock}</span>
-                        </div>
-                    </div>
-                `).join('');
-
-                // Agregar enlace a ver más si hay más de 10 items
-                if (items.length > 10) {
-                    container.innerHTML += `
-                        <div class="col-span-full flex items-center justify-center rounded-xl border-2 border-dashed border-brand-300 bg-brand-50 p-8 dark:border-brand-600 dark:bg-brand-500/10">
-                            <a href="/Home/Inventory" class="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
-                                Ver inventario completo (${items.length} productos)
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    `;
-                }
-            }
-    </script>
 </div>
+
+@section Scripts {
+    <script>
+        function homeModule() {
+            const base = '@Configuration["Valores:UrlApi"]';
+            const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer @Context.Session.GetString("Token")' };
+            return {
+                appointments: { scheduled: 0, completed: 0, cancelled: 0, total: 0 },
+                financial: { total_income: 0, total_expense: 0, balance: 0 },
+                lowStock: [],
+                expiringBatches: [],
+                loading: true,
+                error: '',
+                money(value) { return new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC' }).format(value || 0); },
+                async request(path) {
+                    const response = await fetch(base + path, { headers });
+                    if (!response.ok) throw new Error();
+                    return response.json();
+                },
+                async load() {
+                    this.loading = true;
+                    const results = await Promise.allSettled([
+                        this.request('Reporting/Appointments/Summary'),
+                        this.request('Financial/Summary'),
+                        this.request('Inventory/LowStock'),
+                        this.request('Inventory/ExpiringBatches?days=30')
+                    ]);
+                    if (results[0].status === 'fulfilled') this.appointments = results[0].value;
+                    if (results[1].status === 'fulfilled') this.financial = results[1].value;
+                    if (results[2].status === 'fulfilled') this.lowStock = results[2].value;
+                    if (results[3].status === 'fulfilled') this.expiringBatches = results[3].value;
+                    if (results.some(result => result.status === 'rejected')) this.error = 'Parte del resumen no pudo actualizarse. Puedes continuar utilizando los módulos del sistema.';
+                    this.loading = false;
+                }
+            };
+        }
+    </script>
+}

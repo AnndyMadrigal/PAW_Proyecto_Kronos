@@ -190,6 +190,16 @@ namespace PAW_Proyecto_KronosAPI.Controllers
             return Ok(response);
         }
 
+        [HttpGet("BuscarSedesAPI")]
+        public IActionResult BuscarSedesAPI()
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            var response = context.Query<LocationOptionResponseModel>(
+                "location_sp_locations_list",
+                commandType: System.Data.CommandType.StoredProcedure).ToList();
+            return Ok(response);
+        }
+
         [HttpGet("CatalogoAPI/{catalogName}")]
         public IActionResult CatalogoAPI(string catalogName)
         {
@@ -221,18 +231,18 @@ namespace PAW_Proyecto_KronosAPI.Controllers
                 }
                 if (cita == null) return;
 
-                int? tipoEmailId = await context.QueryFirstOrDefaultAsync<int?>(
-                    @"SELECT ci.id FROM config_tbl_catalog_items ci
-                      INNER JOIN config_tbl_catalogs c ON c.id = ci.catalog_id
-                      WHERE c.name = N'notification_type' AND ci.value = N'email'");
-                int? statusSentId = await context.QueryFirstOrDefaultAsync<int?>(
-                    @"SELECT ci.id FROM config_tbl_catalog_items ci
-                      INNER JOIN config_tbl_catalogs c ON c.id = ci.catalog_id
-                      WHERE c.name = N'notification_status' AND ci.value = N'sent'");
-                int? statusFailedId = await context.QueryFirstOrDefaultAsync<int?>(
-                    @"SELECT ci.id FROM config_tbl_catalog_items ci
-                      INNER JOIN config_tbl_catalogs c ON c.id = ci.catalog_id
-                      WHERE c.name = N'notification_status' AND ci.value = N'failed'");
+                var notificationTypes = await context.QueryAsync<CatalogItemResponseModel>(
+                    "config_sp_catalog_items_list",
+                    new { catalog_name = "notification_type" },
+                    commandType: System.Data.CommandType.StoredProcedure);
+                var notificationStatuses = await context.QueryAsync<CatalogItemResponseModel>(
+                    "config_sp_catalog_items_list",
+                    new { catalog_name = "notification_status" },
+                    commandType: System.Data.CommandType.StoredProcedure);
+
+                int? tipoEmailId = notificationTypes.FirstOrDefault(item => item.value == "email")?.id;
+                int? statusSentId = notificationStatuses.FirstOrDefault(item => item.value == "sent")?.id;
+                int? statusFailedId = notificationStatuses.FirstOrDefault(item => item.value == "failed")?.id;
 
                 string fecha = cita.scheduled_start_at.ToString("dd/MM/yyyy HH:mm");
                 string year = DateTime.Now.Year.ToString();

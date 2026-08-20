@@ -1,0 +1,7 @@
+namespace PAW_Proyecto_KronosAPI.Models;
+public class FinancialTransactionRequestModel { public string transaction_type { get; set; } = string.Empty; public int financial_category_id { get; set; } public int? financial_payment_method_id { get; set; } public decimal amount { get; set; } public DateTime transaction_date { get; set; } = DateTime.Now; public string? description { get; set; } public int? financial_donor_id { get; set; } public int? supplier_id { get; set; } }
+public class FinancialSummaryModel { public decimal total_income { get; set; } public decimal total_expense { get; set; } public decimal balance { get; set; } }
+public class FinancialTransactionModel { public int id { get; set; } public string transaction_type { get; set; } = string.Empty; public decimal amount { get; set; } public DateTime transaction_date { get; set; } public string? description { get; set; } public string category_name { get; set; } = string.Empty; }
+public class FinancialCategoryOptionModel { public int id { get; set; } public string name { get; set; } = string.Empty; public string transaction_type { get; set; } = string.Empty; }
+public class FinancialOptionModel { public int id { get; set; } public string name { get; set; } = string.Empty; }
+public class FinancialReferenceDataModel { public List<FinancialCategoryOptionModel> categories { get; set; } = []; public List<FinancialOptionModel> payment_methods { get; set; } = []; }

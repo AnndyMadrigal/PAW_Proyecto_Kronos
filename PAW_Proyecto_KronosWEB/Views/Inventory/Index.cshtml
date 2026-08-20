@@ -1,0 +1,15 @@
+@model List<InventoryItemViewModel>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Inventario";
+}
+<div class="p-6 space-y-6">
+ <div class="flex items-center justify-between"><div><h1 class="text-2xl font-semibold">Inventario</h1><p class="text-sm text-gray-500">Productos, niveles mínimos y trazabilidad operativa.</p></div><a asp-action="Crear" class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white">Nuevo producto</a></div>
+ @if (TempData["Mensaje"] is string message) { <div class="rounded-lg bg-green-50 p-3 text-green-700">@message</div> }
+ @if (TempData["MensajeError"] is string error) { <div class="rounded-lg bg-red-50 p-3 text-red-700">@error</div> }
+ <form method="get" class="flex gap-3"><input name="search" value="@ViewBag.Search" placeholder="Buscar producto" class="rounded-lg border px-3 py-2"/><button class="rounded-lg border px-4 py-2">Buscar</button></form>
+ <div class="overflow-x-auto rounded-xl border"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-3 text-left">Producto</th><th class="p-3 text-left">Categoría</th><th class="p-3 text-left">Unidad</th><th class="p-3 text-left">Mínimo</th><th class="p-3"></th></tr></thead><tbody>
+ @foreach (var item in Model) { <tr class="border-t"><td class="p-3"><strong>@item.name</strong><div class="text-gray-500">@item.description</div></td><td class="p-3">@item.category_name</td><td class="p-3">@item.unit_name @item.unit_abbreviation</td><td class="p-3">@item.minimum_stock</td><td class="p-3 whitespace-nowrap"><a asp-action="Editar" asp-route-id="@item.id" class="text-blue-600">Editar</a><form asp-action="Eliminar" method="post" class="inline delete-form"><input type="hidden" name="id" value="@item.id"/><button class="ml-3 text-red-600">Eliminar</button></form></td></tr> }
+ </tbody></table></div>
+</div>
+@section Scripts { <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script><script>document.querySelectorAll('.delete-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();Swal.fire({title:'¿Eliminar producto?',text:'Se desactivará y dejará de aparecer en las listas.',icon:'warning',showCancelButton:true,confirmButtonText:'Sí, eliminar',cancelButtonText:'Cancelar'}).then(r=>{if(r.isConfirmed)f.submit()})}))</script> }

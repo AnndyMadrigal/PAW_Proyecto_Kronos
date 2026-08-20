@@ -13,4 +13,9 @@
         public string RoleName { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
     }
+
+    public class AuthRoleResponseModel
+    {
+        public string role_name { get; set; } = string.Empty;
+    }
 }

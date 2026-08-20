@@ -1,0 +1,80 @@
+@inject IConfiguration Configuration
+@{ Layout="_Layout"; ViewData["Title"]="Catálogos"; }
+
+<div class="space-y-6" x-data="catalogModule()" x-init="load()">
+    <div>
+        <h1 class="text-2xl font-semibold dark:text-white">Catálogos operativos</h1>
+        <p class="text-sm text-gray-500">Administre los valores que aparecen en citas y otros módulos.</p>
+    </div>
+
+    <div class="grid gap-5 lg:grid-cols-3">
+        <section class="rounded-xl border bg-white p-2 dark:bg-white/[.03]">
+            <template x-for="c in catalogs" :key="c.id">
+                <button @@click="select(c)" class="block w-full border-b px-3 py-3 text-left last:border-b-0 hover:bg-gray-50 dark:hover:bg-white/5" :class="selected?.id===c.id?'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300':''">
+                    <span class="block font-semibold" x-text="catalogInfo(c).title"></span>
+                    <span class="mt-1 block text-xs text-gray-500" x-text="catalogInfo(c).description"></span>
+                </button>
+            </template>
+        </section>
+
+        <section x-show="selected" x-cloak class="rounded-xl border bg-white p-5 lg:col-span-2 dark:bg-white/[.03]">
+            <div class="mb-5 border-b pb-4">
+                <h2 class="font-semibold" x-text="catalogInfo(selected).title"></h2>
+                <p class="mt-1 text-sm text-gray-500" x-text="catalogInfo(selected).description"></p>
+            </div>
+
+            <form @@submit.prevent="save()" class="grid gap-4 md:grid-cols-3">
+                <div>
+                    <label class="text-sm font-medium dark:text-white" for="catalog-value">Identificador interno</label>
+                    <input id="catalog-value" required autocomplete="off" pattern="[a-z0-9_]+" x-model.trim="form.value" placeholder="Ej.: pending" class="mt-1 w-full rounded border p-2">
+                    <p class="mt-1 text-xs text-gray-500">Código estable que usa el sistema. Use minúsculas, números y guion bajo; no es el texto que verá la persona usuaria.</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium dark:text-white" for="catalog-name">Nombre que verá la persona usuaria</label>
+                    <input id="catalog-name" required x-model.trim="form.name" placeholder="Ej.: Pendiente" class="mt-1 w-full rounded border p-2">
+                    <p class="mt-1 text-xs text-gray-500">Texto claro que aparecerá en formularios, listas y reportes.</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium dark:text-white" for="catalog-order">Orden de aparición</label>
+                    <input id="catalog-order" type="number" min="0" step="10" x-model.number="form.sort_order" class="mt-1 w-full rounded border p-2">
+                    <p class="mt-1 text-xs text-gray-500">Los números menores aparecen primero. Use 10, 20, 30 para poder insertar opciones después.</p>
+                </div>
+                <div class="md:col-span-3"><button class="rounded bg-brand-500 px-4 py-2 text-white hover:bg-brand-600">Agregar valor al catálogo</button></div>
+            </form>
+
+            <div class="mt-6 border-t pt-4">
+                <h3 class="mb-2 text-sm font-semibold dark:text-white">Valores actuales</h3>
+                <template x-for="i in items" :key="i.id"><div class="flex items-center justify-between gap-4 border-b py-3 text-sm"><div><span class="font-medium" x-text="i.name"></span><span class="ml-2 text-xs text-gray-500" x-text="'Identificador interno: ' + i.value"></span><span class="ml-2 text-xs text-gray-500" x-text="'Orden: ' + i.sort_order"></span></div><button @@click="remove(i.id)" class="text-red-600 hover:underline">Eliminar</button></div></template>
+                <p x-show="items.length===0" class="py-3 text-sm text-gray-500">Aún no hay valores registrados para este catálogo.</p>
+            </div>
+        </section>
+    </div>
+    <p x-show="message" class="text-sm text-red-600" x-text="message"></p>
+</div>
+
+@section Scripts {
+<script>
+function catalogModule() {
+    const baseUrl = '@Configuration["Valores:UrlApi"]Catalogs';
+    const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer @Context.Session.GetString("Token")' };
+    const labels = {
+        user_status: 'Estado de usuarios', patient_status: 'Estado administrativo de pacientes', gender: 'Género', contact_type: 'Tipo de contacto',
+        staff_availability_source_type: 'Origen de disponibilidad del personal', inventory_movement_type: 'Tipo de movimiento de inventario', inventory_source_type: 'Origen del movimiento de inventario',
+        medical_record_status: 'Estado del expediente médico', medical_record_access_type: 'Tipo de acceso al expediente médico', medical_note_type: 'Tipo de nota clínica',
+        condition_status: 'Estado de condición médica', allergy_severity: 'Nivel de severidad de alergia', care_plan_status: 'Estado del plan de cuidado',
+        care_plan_activity_status: 'Estado de actividad del plan de cuidado', service_event_type: 'Tipo de cita o visita', service_event_status: 'Estado de cita o visita',
+        service_event_location_type: 'Tipo de ubicación de la cita', service_event_staff_role: 'Rol del personal en la cita', service_event_note_type: 'Tipo de nota de la cita',
+        financial_invoice_status: 'Estado de factura', financial_receipt_status: 'Estado de recibo', financial_transaction_type: 'Tipo de movimiento financiero',
+        notification_type: 'Tipo de notificación', notification_status: 'Estado de notificación'
+    };
+    return {
+        catalogs: [], items: [], selected: null, message: '', form: { value: '', name: '', sort_order: 10 },
+        catalogInfo(c) { return { title: labels[c?.name] || c?.description || 'Catálogo operativo', description: c?.description || 'Valores disponibles para el funcionamiento del sistema.' }; },
+        async load() { const response = await fetch(baseUrl, { headers }); if (response.ok) this.catalogs = await response.json(); },
+        async select(c) { this.selected = c; this.message = ''; this.form = { value: '', name: '', sort_order: 10 }; const response = await fetch(baseUrl + '/' + c.id + '/Items', { headers }); if (response.ok) this.items = await response.json(); },
+        async save() { const response = await fetch(baseUrl + '/Items', { method: 'POST', headers, body: JSON.stringify({ ...this.form, catalog_id: this.selected.id }) }); if (!response.ok) { this.message = await response.text(); return; } await this.select(this.selected); },
+        async remove(id) { if (!confirm('¿Desea desactivar este valor?')) return; await fetch(baseUrl + '/Items/' + id, { method: 'DELETE', headers }); await this.select(this.selected); }
+    };
+}
+</script>
+}

@@ -46,12 +46,20 @@ namespace PAW_Proyecto_Kronos.Controllers
             return await response.Content.ReadFromJsonAsync<List<StaffOptionModel>>() ?? new();
         }
 
+        private async Task<List<LocationOptionModel>> ObtenerSedesAsync(HttpClient client)
+        {
+            var response = await client.GetAsync("Citas/BuscarSedesAPI");
+            if (response.StatusCode != HttpStatusCode.OK) return new List<LocationOptionModel>();
+            return await response.Content.ReadFromJsonAsync<List<LocationOptionModel>>() ?? new();
+        }
+
         private async Task LlenarListasFormularioAsync(HttpClient client, CitaFormModel model)
         {
             model.Pacientes = await ObtenerPacientesAsync(client);
             model.Colaboradores = await ObtenerColaboradoresAsync(client);
             model.TiposCita = await ObtenerCatalogoAsync(client, "service_event_type");
             model.TiposUbicacion = await ObtenerCatalogoAsync(client, "service_event_location_type");
+            model.Sedes = await ObtenerSedesAsync(client);
         }
 
         // RF-06 Paso 5: validaciones minimas antes de llamar a la API. El
@@ -150,6 +158,30 @@ namespace PAW_Proyecto_Kronos.Controllers
                 model.Semanas.Add(semana);
             }
 
+            return View(model);
+        }
+
+        #endregion
+
+        #region Agenda diaria y semanal
+
+        [HttpGet]
+        public async Task<IActionResult> Agenda(DateTime? date, string mode = "day", int? staffMemberId = null)
+        {
+            var selected = (date ?? DateTime.Today).Date;
+            var weekly = string.Equals(mode, "week", StringComparison.OrdinalIgnoreCase);
+            var start = weekly ? selected.AddDays(-(int)selected.DayOfWeek) : selected;
+            var end = weekly ? start.AddDays(6) : selected;
+            var model = new CitaAgendaViewModel { StartDate = start, EndDate = end, Mode = weekly ? "week" : "day", StaffMemberId = staffMemberId };
+            try
+            {
+                var client = CrearClienteApi();
+                var query = $"Citas/ListarCitasAPI?dateFrom={start:yyyy-MM-dd}&dateTo={end:yyyy-MM-dd}" + (staffMemberId.HasValue ? $"&staffMemberId={staffMemberId}" : string.Empty);
+                var response = await client.GetAsync(query);
+                model.Citas = response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<List<CitaListItemModel>>() ?? new() : new();
+                model.Colaboradores = await ObtenerColaboradoresAsync(client);
+            }
+            catch (HttpRequestException) { TempData["Mensaje"] = "No se pudo cargar la agenda."; }
             return View(model);
         }
 
@@ -367,6 +399,7 @@ namespace PAW_Proyecto_Kronos.Controllers
         public async Task<IActionResult> Detalle(int id)
         {
             var client = CrearClienteApi();
+            ViewBag.ApiUrl = _config["Valores:UrlApi"];
             try
             {
                 var response = await client.GetAsync($"Citas/DetalleCitaAPI/{id}");

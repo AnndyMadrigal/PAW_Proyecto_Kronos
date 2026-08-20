@@ -76,6 +76,68 @@ namespace PAW_Proyecto_KronosAPI.Controllers
 
         #endregion
 
+        #region Complementos clínicos
+
+        [HttpGet("ComplementosClinicosAPI")]
+        public IActionResult ComplementosClinicosAPI(int medicalRecordId)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                using var multi = context.QueryMultiple("medical_sp_record_clinical_extras_get", new { medical_record_id = medicalRecordId }, commandType: System.Data.CommandType.StoredProcedure);
+                return Ok(new { vital_signs = multi.Read(), allergies = multi.Read(), care_plans = multi.Read(), activities = multi.Read(), access_logs = multi.Read() });
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        [HttpGet("ComplementosReferenciasAPI")]
+        public IActionResult ComplementosReferenciasAPI()
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try
+            {
+                using var multi = context.QueryMultiple("medical_sp_clinical_references_get", commandType: System.Data.CommandType.StoredProcedure);
+                return Ok(new { allergies = multi.Read(), allergy_severities = multi.Read(), care_plan_statuses = multi.Read() });
+            }
+            catch (SqlException ex) { return HandleSqlException(ex); }
+            catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        [HttpPost("GuardarSignosVitalesAPI")]
+        public IActionResult GuardarSignosVitalesAPI(ClinicalVitalRequestModel model)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try { return Ok(context.QueryFirst("medical_sp_patient_vital_signs_create", model, commandType: System.Data.CommandType.StoredProcedure)); }
+            catch (SqlException ex) { return HandleSqlException(ex); } catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        [HttpPost("GuardarAlergiaAPI")]
+        public IActionResult GuardarAlergiaAPI(ClinicalAllergyRequestModel model)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try { return Ok(context.QueryFirst("medical_sp_patient_allergies_upsert", model, commandType: System.Data.CommandType.StoredProcedure)); }
+            catch (SqlException ex) { return HandleSqlException(ex); } catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        [HttpPost("GuardarPlanCuidadosAPI")]
+        public IActionResult GuardarPlanCuidadosAPI(ClinicalCarePlanRequestModel model)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try { return Ok(context.QueryFirst("medical_sp_patient_care_plan_create", model, commandType: System.Data.CommandType.StoredProcedure)); }
+            catch (SqlException ex) { return HandleSqlException(ex); } catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        [HttpPost("GuardarActividadPlanAPI")]
+        public IActionResult GuardarActividadPlanAPI(ClinicalCareActivityRequestModel model)
+        {
+            using var context = new SqlConnection(_config["ConnectionStrings:DefaultConnection"]);
+            try { return Ok(context.QueryFirst("medical_sp_care_plan_activity_create", model, commandType: System.Data.CommandType.StoredProcedure)); }
+            catch (SqlException ex) { return HandleSqlException(ex); } catch (Exception ex) { return HandleUnexpectedException(ex); }
+        }
+
+        #endregion
+
         #region Apertura y Estado de Expediente
 
         [HttpPost("AbrirExpedienteAPI")]

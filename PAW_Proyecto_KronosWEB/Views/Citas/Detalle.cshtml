@@ -12,7 +12,7 @@
    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script> *@
 <style>[x-cloak] { display: none !important; }</style>
 
-<div class="p-6 max-w-4xl" x-data="{ mostrarCancelar: false }">
+<div class="p-6 max-w-4xl" x-data="appointmentLog(@(cita?.id ?? 0))" x-init="loadNotes()">
 
     @if (TempData["Mensaje"] != null)
     {
@@ -97,6 +97,15 @@
                 }
 
                 <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Bitácora de atención</h2>
+                    <form @@submit.prevent="saveNote()" class="grid gap-2 md:grid-cols-4">
+                        <select required x-model.number="note.note_type_id" class="rounded border p-2 text-sm"><option value="">Tipo de nota</option><template x-for="t in noteTypes"><option :value="t.id" x-text="t.name"></option></template></select>
+                        <textarea required x-model="note.note_text" placeholder="Registrar seguimiento" class="rounded border p-2 text-sm md:col-span-2"></textarea><button class="rounded bg-brand-500 px-3 py-2 text-sm text-white">Agregar</button>
+                    </form><p x-show="noteMessage" class="mt-2 text-sm text-red-600" x-text="noteMessage"></p>
+                    <div class="mt-4 space-y-3"><template x-for="n in notes" :key="n.id"><article class="border-l-2 border-brand-300 pl-3"><p class="text-sm" x-text="n.note_text"></p><p class="text-xs text-gray-500" x-text="n.note_type_name+' · '+(n.staff_name||'Sistema')+' · '+new Date(n.created_at).toLocaleString('es-CR')"></p></article></template><p x-show="notes.length===0" class="text-sm text-gray-500">No hay notas registradas.</p></div>
+                </div>
+
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Historial de estados</h2>
                     <ul class="space-y-3">
                         @foreach (var h in Model!.historial)
@@ -168,3 +177,4 @@
         </div>
     }
 </div>
+@section Scripts {<script>function appointmentLog(id){const api='@ViewBag.ApiUrl',h={'Content-Type':'application/json','Authorization':'Bearer @Context.Session.GetString("Token")'};return{mostrarCancelar:false,notes:[],noteTypes:[],note:{note_type_id:'',note_text:''},noteMessage:'',async loadNotes(){let [n,t]=await Promise.all([fetch(api+'Services/Events/'+id+'/Notes',{headers:h}),fetch(api+'Citas/CatalogoAPI/service_event_note_type',{headers:h})]);if(n.ok)this.notes=await n.json();if(t.ok)this.noteTypes=await t.json()},async saveNote(){let r=await fetch(api+'Services/Events/Notes',{method:'POST',headers:h,body:JSON.stringify({...this.note,service_event_id:id})});if(!r.ok){this.noteMessage=await r.text();return}this.note={note_type_id:'',note_text:''};await this.loadNotes()}}}</script>}

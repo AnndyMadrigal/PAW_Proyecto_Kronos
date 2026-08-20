@@ -21,6 +21,7 @@
         public List<StaffOptionModel> Colaboradores { get; set; } = new();
         public List<CatalogOptionModel> TiposCita { get; set; } = new();
         public List<CatalogOptionModel> TiposUbicacion { get; set; } = new();
+        public List<LocationOptionModel> Sedes { get; set; } = new();
 
         
         public List<CitaSuggestedSlotModel> HorariosSugeridos { get; set; } = new();
@@ -59,5 +60,13 @@
     {
         public DateTime candidate_start { get; set; }
         public DateTime candidate_end { get; set; }
+    }
+
+    public class LocationOptionModel
+    {
+        public int id { get; set; }
+        public string name { get; set; } = string.Empty;
+        public string? description { get; set; }
+        public string? address_line { get; set; }
     }
 }

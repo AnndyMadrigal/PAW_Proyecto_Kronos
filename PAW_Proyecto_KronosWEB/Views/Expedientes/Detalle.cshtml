@@ -44,6 +44,7 @@
                   "bg-green-50 text-green-700 dark:bg-green-500/10")">
                 @exp.status_name
             </span>
+            <a asp-action="Complementos" asp-route-medicalRecordId="@exp.id" asp-route-patientId="@exp.patient_id" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200">Registro clínico ampliado</a>
         </div>
 
         <div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -370,4 +371,4 @@
             <a asp-action="Index" class="text-sm text-gray-500 hover:underline dark:text-gray-400">← Volver a la búsqueda</a>
         </div>
     }
-</div>
+</div>

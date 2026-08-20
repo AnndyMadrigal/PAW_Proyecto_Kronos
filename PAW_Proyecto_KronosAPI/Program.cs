@@ -4,26 +4,17 @@ using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using PAW_Proyecto_KronosAPI.Models;
 using PAW_Proyecto_KronosAPI.Services;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IHelpersService, HelpersService>();
-
-// [INVENTARIO] Configurar CORS para permitir llamadas desde el cliente web
-// Nota: Para revertir, eliminar todo este bloque AddCors()
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowWeb", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowWeb", policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -35,8 +26,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!))
         };
         options.Events = new JwtBearerEvents
         {
@@ -46,35 +36,39 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var tokenId = context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
                 if (!int.TryParse(userIdText, out var userId) || string.IsNullOrWhiteSpace(tokenId))
                 {
-                    context.Fail("Token de sesiÃ³n invÃ¡lido.");
+                    context.Fail("Token de sesión inválido.");
                     return;
                 }
 
                 await using var connection = new SqlConnection(builder.Configuration["ConnectionStrings:DefaultConnection"]);
                 var validation = await connection.QueryFirstOrDefaultAsync<TokenValidationResponseModel>(
-                    "access_sp_auth_validate_token",
-                    new { user_id = userId, token_id = tokenId });
+                    "access_sp_auth_validate_token", new { user_id = userId, token_id = tokenId },
+                    commandType: System.Data.CommandType.StoredProcedure);
                 if (validation?.is_valid != true)
-                    context.Fail("La sesiÃ³n ya no estÃ¡ vigente.");
+                {
+                    context.Fail("La sesión ya no está vigente.");
+                    return;
+                }
+
+                var role = await connection.QueryFirstOrDefaultAsync<AuthRoleResponseModel>(
+                    "access_sp_auth_get_user_role", new { user_id = userId },
+                    commandType: System.Data.CommandType.StoredProcedure);
+                if (string.IsNullOrWhiteSpace(role?.role_name))
+                {
+                    context.Fail("El usuario no tiene un perfil activo.");
+                    return;
+                }
+
+                (context.Principal?.Identity as ClaimsIdentity)?.AddClaim(new System.Security.Claims.Claim(ClaimTypes.Role, role.role_name));
             }
         };
     });
 
 var app = builder.Build();
-
-// Manejador global de excepciones: cualquier excepcion no controlada por un
-// controller termina aqui, se traduce (errores de negocio) o se registra en
-// system_tbl_error_logs (errores de sistema). Ver ErrorController.
 app.UseExceptionHandler("/api/Error/RegistrarErrorAPI");
-
-// [INVENTARIO] CORS debe ejecutarse antes que HTTPS redirect
 app.UseCors("AllowWeb");
-
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

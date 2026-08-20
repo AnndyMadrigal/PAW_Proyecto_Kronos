@@ -248,6 +248,13 @@ namespace PAW_Proyecto_Kronos.Controllers
 
         #endregion
 
+        [HttpGet]
+        public IActionResult Complementos(int medicalRecordId, int patientId)
+        {
+            ViewBag.PatientId = patientId;
+            return View(model: medicalRecordId);
+        }
+
         #region Notas clinicas
 
         [HttpPost]

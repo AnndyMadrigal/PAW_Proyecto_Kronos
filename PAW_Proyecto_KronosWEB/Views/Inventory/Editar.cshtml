@@ -1,0 +1,9 @@
+@model InventoryItemViewModel
+@{
+    Layout = "_Layout";
+    var isEdit = Model.id != 0;
+    var categories = ViewBag.Categories as List<InventoryReferenceViewModel> ?? [];
+    var units = ViewBag.Units as List<InventoryReferenceViewModel> ?? [];
+    ViewData["Title"] = isEdit ? "Editar producto" : "Nuevo producto";
+}
+<div class="mx-auto max-w-2xl p-6"><h1 class="mb-6 text-2xl font-semibold">@ViewData["Title"]</h1><form asp-action="Guardar" method="post" class="space-y-4 rounded-xl border p-6"><input asp-for="id" type="hidden"/><div asp-validation-summary="ModelOnly" class="text-red-600"></div><div><label asp-for="name">Nombre</label><input asp-for="name" class="mt-1 w-full rounded-lg border p-2" required/></div><div><label asp-for="description">Descripción</label><textarea asp-for="description" class="mt-1 w-full rounded-lg border p-2"></textarea></div><div class="grid gap-4 md:grid-cols-2"><div><label asp-for="inventory_category_id">Categoría</label><select asp-for="inventory_category_id" class="mt-1 w-full rounded-lg border p-2" required><option value="">Seleccione</option>@foreach(var x in categories){<option value="@x.id">@x.name</option>}</select></div><div><label asp-for="inventory_unit_id">Unidad</label><select asp-for="inventory_unit_id" class="mt-1 w-full rounded-lg border p-2" required><option value="">Seleccione</option>@foreach(var x in units){<option value="@x.id">@x.name</option>}</select></div></div><div><label asp-for="minimum_stock">Stock mínimo</label><input asp-for="minimum_stock" type="number" min="0" step="0.0001" class="mt-1 w-full rounded-lg border p-2" required/></div><label class="flex gap-2"><input asp-for="requires_expiration_date"/> Requiere fecha de vencimiento</label><div class="flex justify-end gap-3"><a asp-action="Index" class="px-4 py-2">Cancelar</a><button class="rounded-lg bg-brand-500 px-4 py-2 text-white">Guardar</button></div></form></div>

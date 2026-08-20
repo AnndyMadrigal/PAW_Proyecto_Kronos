@@ -81,20 +81,32 @@
                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
             </div>
 
-            <div>
-                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de ubicación<span class="text-error-500">*</span></label>
-                <select asp-for="location_type_id" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+            <div class="sm:col-span-2">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Modalidad de la cita<span class="text-error-500">*</span></label>
+                <select asp-for="location_type_id" required onchange="actualizarCamposUbicacion()" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     @foreach (var t in Model.TiposUbicacion)
                     {
-                        <option value="@t.id" selected="@(Model.location_type_id == t.id)">@t.name</option>
+                        <option value="@t.id" selected="@(Model.location_type_id == t.id)" data-location-type="@t.value">@t.name</option>
                     }
                 </select>
             </div>
 
-            <div class="sm:col-span-2">
-                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Dirección / descripción de ubicación</label>
+            <div id="sede-field" class="sm:col-span-2 hidden">
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Sede o consultorio <span class="text-error-500">*</span></label>
+                <select asp-for="location_id" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    <option value="">-- Seleccione la sede --</option>
+                    @foreach (var sede in Model.Sedes)
+                    {
+                        <option value="@sede.id" selected="@(Model.location_id == sede.id)">@sede.name@(string.IsNullOrWhiteSpace(sede.address_line) ? "" : $" — {sede.address_line}")</option>
+                    }
+                </select>
+            </div>
+
+            <div id="detalle-ubicacion-field" class="sm:col-span-2 hidden">
+                <label id="detalle-ubicacion-label" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Detalle de ubicación</label>
                 <input asp-for="location_description" type="text"
                        class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                <p id="detalle-ubicacion-help" class="mt-1 text-xs text-gray-500 dark:text-gray-400"></p>
             </div>
 
             <div class="sm:col-span-2">
@@ -120,3 +132,32 @@
         </div>
     </form>
 </div>
+
+<script>
+    function actualizarCamposUbicacion() {
+        const tipo = document.querySelector('#location_type_id option:checked')?.dataset.locationType || '';
+        const sede = document.getElementById('sede-field');
+        const detalle = document.getElementById('detalle-ubicacion-field');
+        const sedeInput = document.getElementById('location_id');
+        const detalleInput = document.getElementById('location_description');
+        const label = document.getElementById('detalle-ubicacion-label');
+        const ayuda = document.getElementById('detalle-ubicacion-help');
+
+        sede.classList.toggle('hidden', tipo !== 'onsite');
+        detalle.classList.toggle('hidden', !tipo || tipo === 'onsite');
+        sedeInput.required = tipo === 'onsite';
+        detalleInput.required = ['home', 'external', 'phone', 'virtual'].includes(tipo);
+
+        const textos = {
+            home: ['Dirección de la visita', 'Indica la dirección y una referencia para llegar.'],
+            external: ['Lugar de la cita', 'Indica el centro, institución o punto de encuentro.'],
+            phone: ['Número telefónico', 'Indica el número al que se realizará el contacto.'],
+            virtual: ['Plataforma y enlace', 'Indica la plataforma y el enlace o código de acceso de la reunión.']
+        };
+        const texto = textos[tipo] || ['Detalle de ubicación', ''];
+        label.textContent = texto[0] + (detalleInput.required ? ' *' : '');
+        ayuda.textContent = texto[1];
+    }
+
+    document.addEventListener('DOMContentLoaded', actualizarCamposUbicacion);
+</script>
